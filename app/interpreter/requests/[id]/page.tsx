@@ -1,4 +1,3 @@
-```typescript
 "use client"
 
 import { useEffect, useState, use } from "react"
@@ -27,17 +26,18 @@ interface Request {
   createdAt: string
 }
 
-export default function RequestDetailPage({ params }: { params: { id: string } }) {
+export default function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [request, setRequest] = useState<Request | null>(null)
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const router = useRouter()
+  const { id } = use(params)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log('[Request Detail] Fetching data for request:', unwrappedParams.id)
+        console.log('[Request Detail] Fetching data for request:', id)
         
         const currentUser = await getCurrentUser()
         
@@ -50,7 +50,7 @@ export default function RequestDetailPage({ params }: { params: { id: string } }
         setCurrentUserId(currentUser.user.id)
 
         // Fetch request
-        const requestResponse = await fetch(buildApiUrl(`/ requests / ${ unwrappedParams.id } `), {
+        const requestResponse = await fetch(buildApiUrl(`/requests/${id}`), {
           credentials: 'include',
         })
 
@@ -63,7 +63,7 @@ export default function RequestDetailPage({ params }: { params: { id: string } }
         setRequest(requestData)
 
         // Fetch chat messages
-        const messagesResponse = await fetch(buildApiUrl(`/ chat ? request_id = ${ unwrappedParams.id } `), {
+        const messagesResponse = await fetch(buildApiUrl(`/chat?request_id=${id}`), {
           credentials: 'include',
         })
 
@@ -79,7 +79,7 @@ export default function RequestDetailPage({ params }: { params: { id: string } }
     }
 
     fetchData()
-  }, [unwrappedParams.id, router])
+  }, [id, router])
 
   const handleSendMessage = async (content: string) => {
     if (!request || !currentUserId) return
@@ -109,7 +109,7 @@ export default function RequestDetailPage({ params }: { params: { id: string } }
     if (!request) return
 
     try {
-      const response = await fetch(buildApiUrl(`/ requests / ${ request.id } `), {
+      const response = await fetch(buildApiUrl(`/requests/${request.id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
