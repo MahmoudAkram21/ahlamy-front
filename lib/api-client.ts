@@ -3,14 +3,15 @@
  * Communicates with standalone backend server on port 5000
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
 
 export function buildApiUrl(path: string) {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
   // Remove leading slash if present to avoid double slashes
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE_URL}${cleanPath}`;
 }
 
@@ -37,10 +38,10 @@ export async function apiFetch<T = any>(
   });
 
   // Handle non-JSON responses
-  const contentType = response.headers.get('content-type');
+  const contentType = response.headers.get("content-type");
   let data;
 
-  if (contentType && contentType.includes('application/json')) {
+  if (contentType && contentType.includes("application/json")) {
     data = await response.json();
   } else {
     data = { message: await response.text() };
@@ -62,21 +63,22 @@ export const authApi = {
     email: string;
     password: string;
     fullName: string;
-    role: 'dreamer' | 'interpreter';
-  }) => apiFetch('/auth/register', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+    role: "dreamer" | "interpreter";
+  }) =>
+    apiFetch("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   login: (credentials: { email: string; password: string }) =>
-    apiFetch('/auth/login', {
-      method: 'POST',
+    apiFetch("/auth/login", {
+      method: "POST",
       body: JSON.stringify(credentials),
     }),
 
-  logout: () => apiFetch('/auth/logout', { method: 'POST' }),
+  logout: () => apiFetch("/auth/logout", { method: "POST" }),
 
-  getCurrentUser: () => apiFetch('/auth/me'),
+  getCurrentUser: () => apiFetch("/auth/me"),
 };
 
 // ============================================
@@ -85,27 +87,27 @@ export const authApi = {
 
 export const profileApi = {
   update: (data: { fullName?: string; bio?: string }) =>
-    apiFetch('/profile/update', {
-      method: 'PATCH',
+    apiFetch("/profile/update", {
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
 
   toggleAvailability: () =>
-    apiFetch('/profile/availability', { method: 'PATCH' }),
+    apiFetch("/profile/availability", { method: "PATCH" }),
 
   uploadAvatar: async (file: File) => {
     const formData = new FormData();
-    formData.append('avatar', file);
+    formData.append("avatar", file);
 
-    const response = await fetch(buildApiUrl('/profile/upload-avatar'), {
-      method: 'POST',
-      credentials: 'include',
+    const response = await fetch(buildApiUrl("/profile/upload-avatar"), {
+      method: "POST",
+      credentials: "include",
       body: formData,
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Upload failed');
+      throw new Error(error.error || "Upload failed");
     }
 
     return response.json();
@@ -118,7 +120,7 @@ export const profileApi = {
 
 export const dreamsApi = {
   getAll: (params?: { status?: string; limit?: number }) => {
-    const query = params ? `?${new URLSearchParams(params as any)}` : '';
+    const query = params ? `?${new URLSearchParams(params as any)}` : "";
     return apiFetch(`/dreams${query}`);
   },
 
@@ -129,24 +131,29 @@ export const dreamsApi = {
     content: string;
     dreamDate?: string;
     mood?: string;
-  }) => apiFetch('/dreams', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+  }) =>
+    apiFetch("/dreams", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
-  update: (id: string, data: Partial<{
-    title: string;
-    content: string;
-    status: string;
-    interpretation: string;
-  }>) => apiFetch(`/dreams/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  }),
+  update: (
+    id: string,
+    data: Partial<{
+      title: string;
+      content: string;
+      status: string;
+      interpretation: string;
+    }>
+  ) =>
+    apiFetch(`/dreams/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 
-  delete: (id: string) => apiFetch(`/dreams/${id}`, { method: 'DELETE' }),
+  delete: (id: string) => apiFetch(`/dreams/${id}`, { method: "DELETE" }),
 
-  getStats: () => apiFetch('/dreams/stats'),
+  getStats: () => apiFetch("/dreams/stats"),
 };
 
 // ============================================
@@ -159,13 +166,14 @@ export const messagesApi = {
   send: (data: {
     dreamId: string;
     content: string;
-    messageType?: 'text' | 'interpretation' | 'inquiry';
-  }) => apiFetch('/messages', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+    messageType?: "text" | "interpretation" | "inquiry";
+  }) =>
+    apiFetch("/messages", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
-  delete: (id: string) => apiFetch(`/messages/${id}`, { method: 'DELETE' }),
+  delete: (id: string) => apiFetch(`/messages/${id}`, { method: "DELETE" }),
 };
 
 // ============================================
@@ -176,8 +184,8 @@ export const commentsApi = {
   getByDream: (dreamId: string) => apiFetch(`/comments?dream_id=${dreamId}`),
 
   create: (data: { dreamId: string; content: string }) =>
-    apiFetch('/comments', {
-      method: 'POST',
+    apiFetch("/comments", {
+      method: "POST",
       body: JSON.stringify(data),
     }),
 };
@@ -188,7 +196,7 @@ export const commentsApi = {
 
 export const requestsApi = {
   getAll: (params?: { status?: string }) => {
-    const query = params ? `?${new URLSearchParams(params)}` : '';
+    const query = params ? `?${new URLSearchParams(params)}` : "";
     return apiFetch(`/requests${query}`);
   },
 
@@ -199,18 +207,23 @@ export const requestsApi = {
     title: string;
     description?: string;
     budget?: number;
-  }) => apiFetch('/requests', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+  }) =>
+    apiFetch("/requests", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
-  update: (id: string, data: {
-    status?: string;
-    interpreterId?: string;
-  }) => apiFetch(`/requests/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  }),
+  update: (
+    id: string,
+    data: {
+      status?: string;
+      interpreterId?: string;
+    }
+  ) =>
+    apiFetch(`/requests/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 };
 
 // ============================================
@@ -218,17 +231,17 @@ export const requestsApi = {
 // ============================================
 
 export const chatApi = {
-  getMessages: (requestId: string) =>
-    apiFetch(`/chat?request_id=${requestId}`),
+  getMessages: (requestId: string) => apiFetch(`/chat?request_id=${requestId}`),
 
   sendMessage: (data: {
     requestId: string;
     content: string;
-    messageType?: 'text' | 'interpretation' | 'inquiry' | 'file';
-  }) => apiFetch('/chat', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+    messageType?: "text" | "interpretation" | "inquiry" | "file";
+  }) =>
+    apiFetch("/chat", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
 
 // ============================================
@@ -236,7 +249,7 @@ export const chatApi = {
 // ============================================
 
 export const notificationsApi = {
-  getAll: () => apiFetch('/notifications'),
+  getAll: () => apiFetch("/notifications"),
 };
 
 // ============================================
@@ -244,11 +257,11 @@ export const notificationsApi = {
 // ============================================
 
 export const plansApi = {
-  getAll: () => apiFetch('/plans'),
+  getAll: () => apiFetch("/plans"),
 
   subscribe: (planId: string) =>
-    apiFetch('/plans/subscribe', {
-      method: 'POST',
+    apiFetch("/plans/subscribe", {
+      method: "POST",
       body: JSON.stringify({ planId }),
     }),
 };
@@ -258,13 +271,13 @@ export const plansApi = {
 // ============================================
 
 export const adminApi = {
-  getStats: () => apiFetch('/admin/stats'),
+  getStats: () => apiFetch("/admin/stats"),
 
-  getAllUsers: () => apiFetch('/admin/users'),
+  getAllUsers: () => apiFetch("/admin/users"),
 
   makeSuperAdmin: (userId: string) =>
-    apiFetch('/admin/make-super-admin', {
-      method: 'POST',
+    apiFetch("/admin/make-super-admin", {
+      method: "POST",
       body: JSON.stringify({ userId }),
     }),
 };
