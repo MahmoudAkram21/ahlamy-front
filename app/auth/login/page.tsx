@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { login } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,7 +14,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
   const searchParams = useSearchParams()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -36,8 +35,9 @@ export default function LoginPage() {
       console.log("[Auth] Login successful:", result.user.id)
       
       // Redirect to the page they tried to access or dashboard
+      // Use window.location for auth redirects to ensure cookies are recognized
       const redirect = searchParams.get('redirect') || '/dashboard'
-      router.push(redirect)
+      window.location.href = redirect
     } catch (err) {
       console.log("[Auth] Login exception:", err)
       setError("حدث خطأ ما. يرجى المحاولة مرة أخرى.")

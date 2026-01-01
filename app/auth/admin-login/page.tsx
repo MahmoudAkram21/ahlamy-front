@@ -2,7 +2,6 @@
 
 import type React from "react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { login } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,7 +13,6 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,7 +38,8 @@ export default function AdminLoginPage() {
       }
 
       console.log("[Admin Login] Admin login successful:", result.user.id)
-      router.push("/admin")
+      // Use window.location for auth redirects to ensure cookies are recognized
+      window.location.href = "/admin"
     } catch (err) {
       console.log("[Admin Login] Admin login exception:", err)
       setError("حدث خطأ ما. يرجى المحاولة مرة أخرى.")

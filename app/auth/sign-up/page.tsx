@@ -2,7 +2,6 @@
 
 import type React from "react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { register } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +17,6 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const router = useRouter()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,8 +38,9 @@ export default function SignUpPage() {
       setSuccess(true)
       
       // Redirect to dashboard after 1 second
+      // Use window.location for auth redirects to ensure cookies are recognized
       setTimeout(() => {
-        router.push("/dashboard")
+        window.location.href = "/dashboard"
       }, 1000)
     } catch (err) {
       console.log("[Auth] Signup error:", err)
