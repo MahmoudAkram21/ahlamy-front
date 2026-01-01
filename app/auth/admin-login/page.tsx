@@ -14,7 +14,7 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {  
     e.preventDefault()
     setLoading(true)
     setError(null)
@@ -38,8 +38,11 @@ export default function AdminLoginPage() {
       }
 
       console.log("[Admin Login] Admin login successful:", result.user.id)
+      // Wait a moment to ensure cookie is set, then redirect
       // Use window.location for auth redirects to ensure cookies are recognized
-      window.location.href = "/admin"
+      setTimeout(() => {
+        window.location.href = "/admin"
+      }, 100)
     } catch (err) {
       console.log("[Admin Login] Admin login exception:", err)
       setError("حدث خطأ ما. يرجى المحاولة مرة أخرى.")

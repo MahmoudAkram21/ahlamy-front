@@ -34,10 +34,16 @@ export default function LoginPage() {
 
       console.log("[Auth] Login successful:", result.user.id)
       
-      // Redirect to the page they tried to access or dashboard
+      // Check if cookie is accessible (for debugging)
+      console.log("[Auth] Checking cookies...", document.cookie)
+      
+      // Wait a moment to ensure cookie is set, then redirect
       // Use window.location for auth redirects to ensure cookies are recognized
       const redirect = searchParams.get('redirect') || '/dashboard'
-      window.location.href = redirect
+      setTimeout(() => {
+        console.log("[Auth] Redirecting to:", redirect)
+        window.location.href = redirect
+      }, 500)
     } catch (err) {
       console.log("[Auth] Login exception:", err)
       setError("حدث خطأ ما. يرجى المحاولة مرة أخرى.")

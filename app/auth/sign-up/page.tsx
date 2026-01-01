@@ -37,9 +37,13 @@ export default function SignUpPage() {
       console.log("[Auth] Registration successful:", result.user.id)
       setSuccess(true)
       
+      // Check if cookie is accessible (for debugging)
+      console.log("[Auth] Checking cookies...", document.cookie)
+      
       // Redirect to dashboard after 1 second
       // Use window.location for auth redirects to ensure cookies are recognized
       setTimeout(() => {
+        console.log("[Auth] Redirecting to dashboard")
         window.location.href = "/dashboard"
       }, 1000)
     } catch (err) {
