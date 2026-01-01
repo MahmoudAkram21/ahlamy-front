@@ -38,11 +38,8 @@ export default function AdminLoginPage() {
       }
 
       console.log("[Admin Login] Admin login successful:", result.user.id)
-      // Wait a moment to ensure cookie is set, then redirect
-      // Use window.location for auth redirects to ensure cookies are recognized
-      setTimeout(() => {
-        window.location.href = "/admin"
-      }, 100)
+      // Redirect immediately - cookie should be set by the API route
+      window.location.href = "/admin"
     } catch (err) {
       console.log("[Admin Login] Admin login exception:", err)
       setError("حدث خطأ ما. يرجى المحاولة مرة أخرى.")

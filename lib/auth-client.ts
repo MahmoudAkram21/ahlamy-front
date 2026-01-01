@@ -81,7 +81,8 @@ export async function login(
   password: string
 ): Promise<{ user: User; profile: Profile } | null> {
   try {
-    const response = await fetch(buildUrl("/auth/login"), {
+    // Use Next.js API route instead of direct backend call to handle cookies properly
+    const response = await fetch("/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -114,7 +115,8 @@ export async function register(
   role: "dreamer" | "interpreter" = "dreamer"
 ): Promise<{ user: User; profile: Profile } | null> {
   try {
-    const response = await fetch(buildUrl("/auth/register"), {
+    // Use Next.js API route instead of direct backend call to handle cookies properly
+    const response = await fetch("/api/auth/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

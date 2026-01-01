@@ -34,16 +34,9 @@ export default function LoginPage() {
 
       console.log("[Auth] Login successful:", result.user.id)
       
-      // Check if cookie is accessible (for debugging)
-      console.log("[Auth] Checking cookies...", document.cookie)
-      
-      // Wait a moment to ensure cookie is set, then redirect
-      // Use window.location for auth redirects to ensure cookies are recognized
+      // Redirect immediately - cookie should be set by the API route
       const redirect = searchParams.get('redirect') || '/dashboard'
-      setTimeout(() => {
-        console.log("[Auth] Redirecting to:", redirect)
-        window.location.href = redirect
-      }, 500)
+      window.location.href = redirect
     } catch (err) {
       console.log("[Auth] Login exception:", err)
       setError("حدث خطأ ما. يرجى المحاولة مرة أخرى.")
