@@ -4,7 +4,8 @@
  */
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
+  // process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export function buildApiUrl(path: string) {
   if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -274,6 +275,35 @@ export const adminApi = {
   getStats: () => apiFetch("/admin/stats"),
 
   getAllUsers: () => apiFetch("/admin/users"),
+
+  createUser: (data: {
+    email: string;
+    password: string;
+    fullName?: string;
+    role: "dreamer" | "interpreter" | "admin" | "super_admin";
+    isAvailable?: boolean;
+  }) =>
+    apiFetch("/admin/users", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateUser: (userId: string, data: {
+    fullName?: string | null;
+    role?: string;
+    isAvailable?: boolean;
+    totalInterpretations?: number;
+    rating?: number;
+  }) =>
+    apiFetch(`/admin/users/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  deleteUser: (userId: string) =>
+    apiFetch(`/admin/users/${userId}`, {
+      method: "DELETE",
+    }),
 
   makeSuperAdmin: (userId: string) =>
     apiFetch("/admin/make-super-admin", {

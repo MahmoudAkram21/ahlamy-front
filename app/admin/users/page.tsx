@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation"
 import { getCurrentUser } from "@/lib/auth-client"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { DashboardHeader } from "@/components/dashboard-header"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Trash2, Eye, EyeOff, Plus } from "lucide-react"
 import { buildApiUrl } from "@/lib/api-client"
 import { PageLoader } from "@/components/ui/preloader"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog } from "@/components/ui/dialog"
 
 interface User {
   id: string
@@ -38,6 +39,23 @@ export default function AdminUsersPage() {
     totalInterpretations: "0",
     rating: "",
   })
+
+  // Create user dialog state
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    email: "",
+    password: "",
+    fullName: "",
+    role: "dreamer",
+    isAvailable: true,
+  })
+
+  // Delete confirmation state
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState<User | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
   const router = useRouter()
 
   const startEditing = (user: User) => {
@@ -126,6 +144,85 @@ export default function AdminUsersPage() {
     }
   }
 
+  const handleCreateUser = async () => {
+    try {
+      setCreating(true)
+      setFormError(null)
+
+      // Validation
+      if (!createForm.email || !createForm.password) {
+        setFormError("البريد الإلكتروني وكلمة المرور مطلوبان")
+        setCreating(false)
+        return
+      }
+
+      if (createForm.password.length < 6) {
+        setFormError("كلمة المرور يجب أن تكون 6 أحرف على الأقل")
+        setCreating(false)
+        return
+      }
+
+      const response = await fetch(buildApiUrl('/admin/users'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(createForm),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data?.error || 'فشل إنشاء المستخدم')
+      }
+
+      const data = await response.json()
+      setUsers((prev) => [data.user, ...prev])
+      setFormSuccess('تم إنشاء المستخدم بنجاح')
+      setShowCreateDialog(false)
+      
+      // Reset form
+      setCreateForm({
+        email: '',
+        password: '',
+        fullName: '',
+        role: 'dreamer',
+        isAvailable: true,
+      })
+    } catch (error) {
+      console.error('[Admin Users] Create error:', error)
+      setFormError(error instanceof Error ? error.message : 'حدث خطأ غير متوقع')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleDeleteUser = async () => {
+    if (!deleteConfirmUser) return
+
+    try {
+      setDeleting(true)
+      setFormError(null)
+
+      const response = await fetch(buildApiUrl(`/admin/users/${deleteConfirmUser.id}`), {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data?.error || 'فشل حذف المستخدم')
+      }
+
+      setUsers((prev) => prev.filter((u) => u.id !== deleteConfirmUser.id))
+      setFormSuccess('تم حذف المستخدم بنجاح')
+      setDeleteConfirmUser(null)
+    } catch (error) {
+      console.error('[Admin Users] Delete error:', error)
+      setFormError(error instanceof Error ? error.message : 'حدث خطأ غير متوقع')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -178,14 +275,27 @@ export default function AdminUsersPage() {
       <DashboardHeader />
 
       <main className="mx-auto mt-6 w-full max-w-6xl px-4">
-        <div className="mb-6 flex items-center gap-3">
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="rounded-full bg-white/70 p-2 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:text-sky-600"
+            >
+              <ArrowRight size={22} />
+            </button>
+            <h1 className="text-2xl font-bold text-slate-900">إدارة المستخدمين</h1>
+          </div>
           <button
-            onClick={() => router.back()}
-            className="rounded-full bg-white/70 p-2 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:text-sky-600"
+            onClick={() => {
+              setFormError(null)
+              setFormSuccess(null)
+              setShowCreateDialog(true)
+            }}
+            className="flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
           >
-            <ArrowRight size={22} />
+            <Plus size={18} />
+            <span>إضافة مستخدم</span>
           </button>
-          <h1 className="text-2xl font-bold text-slate-900">إدارة المستخدمين</h1>
         </div>
 
         {formError && (
@@ -315,12 +425,24 @@ export default function AdminUsersPage() {
                           </Button>
                         </div>
                       ) : (
-                        <button
-                          className="text-sky-600 transition hover:text-amber-400"
-                          onClick={() => startEditing(user)}
-                        >
-                          تعديل
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button
+                            className="text-sky-600 transition hover:text-amber-400"
+                            onClick={() => startEditing(user)}
+                          >
+                            تعديل
+                          </button>
+                          <button
+                            className="text-rose-600 transition hover:text-rose-700"
+                            onClick={() => {
+                              setFormError(null)
+                              setFormSuccess(null)
+                              setDeleteConfirmUser(user)
+                            }}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -330,6 +452,157 @@ export default function AdminUsersPage() {
           </div>
         </div>
       </main>
+
+      {/* Create User Dialog */}
+      <Dialog
+        open={showCreateDialog}
+        onClose={() => {
+          setShowCreateDialog(false)
+          setShowPassword(false)
+        }}
+        title="إضافة مستخدم جديد"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => {
+                setShowCreateDialog(false)
+                setShowPassword(false)
+              }}
+              disabled={creating}
+            >
+              إلغاء
+            </Button>
+            <Button
+              className="rounded-full bg-gradient-to-r from-sky-500 to-amber-400 text-white"
+              onClick={handleCreateUser}
+              disabled={creating}
+            >
+              {creating ? "جارٍ الإنشاء..." : "إنشاء"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              البريد الإلكتروني *
+            </label>
+            <Input
+              type="email"
+              value={createForm.email}
+              onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+              placeholder="example@email.com"
+              className="rounded-full"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              كلمة المرور *
+            </label>
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={createForm.password}
+                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                placeholder="********"
+                className="rounded-full pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">الحد الأدنى 6 أحرف</p>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الاسم الكامل</label>
+            <Input
+              type="text"
+              value={createForm.fullName}
+              onChange={(e) => setCreateForm({ ...createForm, fullName: e.target.value })}
+              placeholder="أدخل الاسم الكامل"
+              className="rounded-full"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الدور *</label>
+            <Select
+              value={createForm.role}
+              onValueChange={(value) => setCreateForm({ ...createForm, role: value })}
+            >
+              <SelectTrigger className="rounded-full">
+                <SelectValue placeholder="اختر الدور" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dreamer">رائي</SelectItem>
+                <SelectItem value="interpreter">مفسر</SelectItem>
+                <SelectItem value="admin">مدير</SelectItem>
+                <SelectItem value="super_admin">مدير رئيسي</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="create-available"
+              checked={createForm.isAvailable}
+              onChange={(e) => setCreateForm({ ...createForm, isAvailable: e.target.checked })}
+              className="h-4 w-4 rounded border-slate-300 text-sky-600"
+            />
+            <label htmlFor="create-available" className="text-sm font-medium text-slate-700">
+              متاح
+            </label>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={!!deleteConfirmUser}
+        onClose={() => setDeleteConfirmUser(null)}
+        title="تأكيد الحذف"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => setDeleteConfirmUser(null)}
+              disabled={deleting}
+            >
+              إلغاء
+            </Button>
+            <Button
+              className="rounded-full bg-rose-600 text-white hover:bg-rose-700"
+              onClick={handleDeleteUser}
+              disabled={deleting}
+            >
+              {deleting ? "جارٍ الحذف..." : "حذف"}
+            </Button>
+          </>
+        }
+      >
+        <div>
+          <p className="mb-2 text-slate-700">
+            هل أنت متأكد من حذف المستخدم <strong>{deleteConfirmUser?.email}</strong>؟
+          </p>
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <p className="font-semibold">⚠️ تحذير:</p>
+            <p className="mt-1">
+              سيتم حذف جميع البيانات المرتبطة بهذا المستخدم بشكل نهائي (الأحلام، الرسائل، المدفوعات، إلخ).
+              هذا الإجراء لا يمكن التراجع عنه.
+            </p>
+          </div>
+        </div>
+      </Dialog>
 
       <BottomNavigation />
     </div>
