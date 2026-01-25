@@ -251,25 +251,13 @@ export async function logout(): Promise<boolean> {
 
 /**
  * Get the current authenticated user
- * Uses Next.js API route for proper cookie handling
  */
 export async function getCurrentUser(): Promise<{
   user: User;
   profile: Profile;
 } | null> {
   try {
-    // Use Next.js API route for cookie handling (same-origin)
-    const response = await fetch("/api/auth/me", {
-      method: "GET",
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = await response.json();
-    return data;
+    return await authApi.getCurrentUser();
   } catch (error) {
     console.error("[Auth] Get current user error:", error);
     return null;
