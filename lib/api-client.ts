@@ -67,9 +67,7 @@ export function buildApiUrl(path: string) {
   }
   // If path starts with /api/, it's a Next.js API route (same-origin)
   // Don't prepend backend URL
-  if (path.startsWith("/api/")) {
-    return path;
-  }
+  
   // Remove leading slash if present to avoid double slashes
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE_URL}${cleanPath}`;
