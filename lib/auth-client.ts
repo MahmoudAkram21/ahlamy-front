@@ -157,6 +157,22 @@ export async function logout(): Promise<boolean> {
 }
 
 /**
+ * Get auth token from cookies (for client-side use)
+ */
+function getAuthTokenFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'auth_token' && value) {
+      return value;
+    }
+  }
+  return null;
+}
+
+/**
  * Get the current authenticated user
  */
 export async function getCurrentUser(): Promise<{
@@ -164,9 +180,18 @@ export async function getCurrentUser(): Promise<{
   profile: Profile;
 } | null> {
   try {
+    const token = getAuthTokenFromCookie();
+    const headers: HeadersInit = {};
+    
+    // Add Authorization header if token is available
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(buildUrl("/auth/me"), {
       method: "GET",
       credentials: "include",
+      headers,
     });
 
     if (!response.ok) {

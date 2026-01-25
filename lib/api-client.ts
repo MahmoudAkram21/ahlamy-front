@@ -21,6 +21,23 @@ export interface ApiRequestOptions extends RequestInit {
 }
 
 /**
+ * Get auth token from cookies (for client-side use)
+ * Note: Only works if cookie is not httpOnly
+ */
+function getAuthTokenFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'auth_token' && value) {
+      return value;
+    }
+  }
+  return null;
+}
+
+/**
  * Base fetch wrapper with error handling
  */
 export async function apiFetch<T = any>(
@@ -29,12 +46,23 @@ export async function apiFetch<T = any>(
 ): Promise<T> {
   const { authenticated = true, ...fetchOptions } = options;
 
+  // Prepare headers with authentication if needed
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string> || {}),
+  };
+
+  // Try to get token from cookie and add to Authorization header as fallback
+  if (authenticated) {
+    const token = getAuthTokenFromCookie();
+    if (token && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
   const response = await fetch(buildApiUrl(path), {
     credentials: authenticated ? "include" : "same-origin",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
+    headers,
     ...fetchOptions,
   });
 
