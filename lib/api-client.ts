@@ -7,6 +7,60 @@ const API_BASE_URL =
   // process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
+// ============================================
+// TypeScript Interfaces
+// ============================================
+
+/**
+ * User interface representing the current authenticated user
+ */
+export interface User {
+  id: string;
+  email: string;
+  role: string;
+}
+
+/**
+ * Profile interface with additional user information
+ */
+export interface Profile {
+  id: string;
+  email: string;
+  fullName: string | null;
+  role: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  isAvailable: boolean;
+  totalInterpretations: number;
+  rating: string;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
+  createdAt: string;
+  updatedAt: string;
+  currentPlan?: {
+    id: string;
+    name: string;
+    price: string;
+    currency: string;
+    letterQuota: number | null;
+  } | null;
+  subscription?: {
+    id: string;
+    planId: string;
+    startedAt: string;
+    expiresAt: string | null;
+    lettersUsed: number;
+    audioMinutesUsed: number;
+    plan: {
+      id: string;
+      name: string;
+      price: string;
+      currency: string;
+      letterQuota: number | null;
+    } | null;
+  } | null;
+}
+
 export function buildApiUrl(path: string) {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
@@ -107,8 +161,128 @@ export const authApi = {
 
   logout: () => apiFetch("/auth/logout", { method: "POST" }),
 
-  getCurrentUser: () => apiFetch("/auth/me"),
+  getCurrentUser: () => apiFetch<{ user: User; profile: Profile }>("/auth/me"),
 };
+
+// ============================================
+// Convenience Functions (for backward compatibility)
+// ============================================
+
+/**
+ * Login a user with email and password
+ * Uses Next.js API route for proper cookie handling
+ */
+export async function login(
+  email: string,
+  password: string
+): Promise<{ user: User; profile: Profile } | null> {
+  try {
+    // Use Next.js API route for cookie handling
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("[Auth] Login failed:", error);
+      return null;
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("[Auth] Login error:", error);
+    return null;
+  }
+}
+
+/**
+ * Register a new user
+ * Uses Next.js API route for proper cookie handling
+ */
+export async function register(
+  email: string,
+  password: string,
+  fullName: string,
+  role: "dreamer" | "interpreter" = "dreamer"
+): Promise<{ user: User; profile: Profile } | null> {
+  try {
+    // Use Next.js API route for cookie handling
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ email, password, fullName, role }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("[Auth] Registration failed:", error);
+      return null;
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("[Auth] Registration error:", error);
+    return null;
+  }
+}
+
+/**
+ * Logout the current user
+ */
+export async function logout(): Promise<boolean> {
+  try {
+    await authApi.logout();
+    return true;
+  } catch (error) {
+    console.error("[Auth] Logout error:", error);
+    return false;
+  }
+}
+
+/**
+ * Get the current authenticated user
+ * Uses Next.js API route for proper cookie handling
+ */
+export async function getCurrentUser(): Promise<{
+  user: User;
+  profile: Profile;
+} | null> {
+  try {
+    // Use Next.js API route for cookie handling (same-origin)
+    const response = await fetch("/api/auth/me", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("[Auth] Get current user error:", error);
+    return null;
+  }
+}
+
+/**
+ * Check if user is authenticated
+ */
+export async function isAuthenticated(): Promise<boolean> {
+  const user = await getCurrentUser();
+  return user !== null;
+}
 
 // ============================================
 // Profile API

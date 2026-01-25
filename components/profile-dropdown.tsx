@@ -3,7 +3,7 @@
 import { LogOut, User, Edit } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { getCurrentUser, logout } from "@/lib/auth-client"
+import { getCurrentUser, logout } from "@/lib/api-client"
 
 interface ProfileDropdownProps {
   onClose: () => void

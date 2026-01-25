@@ -8,7 +8,7 @@ import { InterpreterStatusCard } from "@/components/interpreter-status-card"
 import { DashboardStats } from "@/components/dashboard-stats"
 import { PendingDreamsList } from "@/components/pending-dreams-list"
 import { Button } from "@/components/ui/button"
-import { getCurrentUser } from "@/lib/auth-client"
+import { getCurrentUser } from "@/lib/api-client"
 import { PageLoader } from "@/components/ui/preloader"
 import { buildApiUrl } from "@/lib/api-client"
 

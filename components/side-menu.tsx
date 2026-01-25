@@ -26,7 +26,7 @@ import {
   Music,
 } from "lucide-react"
 
-import type { Profile } from "@/lib/auth-client"
+import type { Profile } from "@/lib/api-client"
 
 interface SideMenuProps {
   open: boolean

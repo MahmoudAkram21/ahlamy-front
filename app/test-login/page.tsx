@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { login } from "@/lib/auth-client"
+import { login } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 

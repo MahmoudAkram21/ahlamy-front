@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentUser } from "@/lib/auth-client"
+import { getCurrentUser } from "@/lib/api-client"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { buildApiUrl } from "@/lib/api-client"

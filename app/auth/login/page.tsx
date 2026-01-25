@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { login } from "@/lib/auth-client"
+import { login } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"

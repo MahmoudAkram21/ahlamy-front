@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentUser } from "@/lib/auth-client"
+import { getCurrentUser } from "@/lib/api-client"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { ChatMessage } from "@/components/chat-message"
 import { ChatInput } from "@/components/chat-input"

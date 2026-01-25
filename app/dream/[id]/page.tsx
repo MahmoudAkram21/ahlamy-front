@@ -8,7 +8,7 @@ import { DreamContentCard } from "@/components/dream-content-card"
 import { ChatMessage } from "@/components/chat-message"
 import { ChatInput } from "@/components/chat-input"
 import { DreamActions } from "@/components/dream-actions"
-import { getCurrentUser } from "@/lib/auth-client"
+import { getCurrentUser } from "@/lib/api-client"
 import { PageLoader } from "@/components/ui/preloader"
 import { buildApiUrl } from "@/lib/api-client"
 

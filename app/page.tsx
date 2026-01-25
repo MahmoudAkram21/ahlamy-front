@@ -21,7 +21,7 @@ import {
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { Card } from "@/components/ui/card"
 import { PageLoader } from "@/components/ui/preloader"
-import { getCurrentUser, type Profile } from "@/lib/auth-client"
+import { getCurrentUser, type Profile } from "@/lib/api-client"
 import { SideMenu } from "@/components/side-menu"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
 

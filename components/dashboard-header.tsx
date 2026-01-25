@@ -7,7 +7,7 @@ import { Bell, Menu, Sun } from "lucide-react"
 import { NotificationsDropdown } from "./notifications-dropdown"
 import { ProfileDropdown } from "./profile-dropdown"
 import { SideMenu } from "./side-menu"
-import { getCurrentUser, type Profile } from "@/lib/auth-client"
+import { getCurrentUser, type Profile } from "@/lib/api-client"
 
 export function DashboardHeader() {
   const [profile, setProfile] = useState<Profile | null>(null)

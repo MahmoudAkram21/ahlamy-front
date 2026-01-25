@@ -2,7 +2,7 @@
 
 import { LogOut, Settings, HelpCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { logout } from "@/lib/auth-client"
+import { logout } from "@/lib/api-client"
 
 interface HeaderMenuProps {
   onClose: () => void

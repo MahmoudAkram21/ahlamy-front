@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentUser, logout } from "@/lib/auth-client"
+import { getCurrentUser, logout } from "@/lib/api-client"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
