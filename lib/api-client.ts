@@ -6,7 +6,6 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
   // process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-
 // ============================================
 // TypeScript Interfaces
 // ============================================
@@ -66,8 +65,10 @@ export function buildApiUrl(path: string) {
     return path;
   }
   // If path starts with /api/, it's a Next.js API route (same-origin)
-  // Don't prepend backend URL
-  
+  // Don't prepend backend URL - use as-is for same-origin requests
+  if (path.startsWith("/api/")) {
+    return path;
+  }
   // Remove leading slash if present to avoid double slashes
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE_URL}${cleanPath}`;
@@ -79,7 +80,6 @@ export interface ApiRequestOptions extends RequestInit {
 
 /**
  * Get auth token from cookies (for client-side use)
- * Note: Only works if cookie is not httpOnly
  */
 function getAuthTokenFromCookie(): string | null {
   if (typeof document === 'undefined') return null;
@@ -193,7 +193,6 @@ export async function login(
 
 /**
  * Register a new user
- * Uses Next.js API route for proper cookie handling
  */
 export async function register(
   email: string,
