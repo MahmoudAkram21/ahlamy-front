@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000/api";
+// Get backend URL - remove /api suffix if present to avoid double /api/api/
+const getBackendUrl = () => {
+  const url = process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
+  // If URL already ends with /api, use it as-is, otherwise add /api
+  return url.endsWith("/api") ? url : `${url}/api`;
+};
+
+const API_BASE_URL = getBackendUrl();
 
 export async function GET(request: NextRequest) {
   try {

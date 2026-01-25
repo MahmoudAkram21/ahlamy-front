@@ -61,14 +61,17 @@ export interface Profile {
 }
 
 export function buildApiUrl(path: string) {
+  // If already a full URL, return as-is
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
   // If path starts with /api/, it's a Next.js API route (same-origin)
   // Don't prepend backend URL - use as-is for same-origin requests
-  if (path.startsWith("/api/")) {
+  // This prevents double /api/api/ in URLs
+  if (path.startsWith("/api/") || path === "/api") {
     return path;
   }
+  // For backend routes, prepend the backend URL
   // Remove leading slash if present to avoid double slashes
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE_URL}${cleanPath}`;
