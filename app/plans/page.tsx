@@ -95,22 +95,22 @@ export default function PlansPage() {
         }
       } else {
         // Legacy subscription flow
-        console.log('[Plans] Subscribing to plan:', planId)
-        
-        const response = await fetch(buildApiUrl('/plans/subscribe'), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ planId }),
-        })
+      console.log('[Plans] Subscribing to plan:', planId)
+      
+      const response = await fetch(buildApiUrl('/plans/subscribe'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ planId }),
+      })
 
-        if (response.ok) {
-          console.log('[Plans] Subscription successful')
-          router.push("/dashboard")
-        } else {
-          console.error('[Plans] Subscription failed')
+      if (response.ok) {
+        console.log('[Plans] Subscription successful')
+        router.push("/dashboard")
+      } else {
+        console.error('[Plans] Subscription failed')
         }
       }
     } catch (error) {
@@ -180,7 +180,7 @@ export default function PlansPage() {
                 {isSmallestCoveringPlan && (
                   <div className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
                     ✓ يناسب رؤيتك
-                  </div>
+                </div>
                 )}
               </div>
 

@@ -65,6 +65,11 @@ export function buildApiUrl(path: string) {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
+  // If path starts with /api/, it's a Next.js API route (same-origin)
+  // Don't prepend backend URL
+  if (path.startsWith("/api/")) {
+    return path;
+  }
   // Remove leading slash if present to avoid double slashes
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE_URL}${cleanPath}`;
@@ -178,23 +183,10 @@ export async function login(
 ): Promise<{ user: User; profile: Profile } | null> {
   try {
     // Use Next.js API route for cookie handling
-    const response = await fetch("/api/auth/login", {
+    return await apiFetch("/api/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify({ email, password }),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("[Auth] Login failed:", error);
-      return null;
-    }
-
-    const data = await response.json();
-    return data;
   } catch (error) {
     console.error("[Auth] Login error:", error);
     return null;
@@ -213,23 +205,10 @@ export async function register(
 ): Promise<{ user: User; profile: Profile } | null> {
   try {
     // Use Next.js API route for cookie handling
-    const response = await fetch("/api/auth/register", {
+    return await apiFetch("/api/auth/register", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify({ email, password, fullName, role }),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("[Auth] Registration failed:", error);
-      return null;
-    }
-
-    const data = await response.json();
-    return data;
   } catch (error) {
     console.error("[Auth] Registration error:", error);
     return null;
@@ -251,13 +230,15 @@ export async function logout(): Promise<boolean> {
 
 /**
  * Get the current authenticated user
+ * Uses Next.js API route for proper cookie handling
  */
 export async function getCurrentUser(): Promise<{
   user: User;
   profile: Profile;
 } | null> {
   try {
-    return await authApi.getCurrentUser();
+    // Use Next.js API route for cookie handling
+    return await apiFetch("/api/auth/me");
   } catch (error) {
     console.error("[Auth] Get current user error:", error);
     return null;
