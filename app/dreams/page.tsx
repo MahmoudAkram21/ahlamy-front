@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { PageLoader } from "@/components/ui/preloader"
-import { buildApiUrl } from "@/lib/api-client"
+import { buildApiUrl, getAuthHeaders } from "@/lib/api-client"
 
 interface Dream {
   id: string
@@ -31,6 +31,7 @@ export default function DreamsPage() {
         const response = await fetch(buildApiUrl('/dreams'), {
           method: 'GET',
           credentials: 'include',
+          headers: getAuthHeaders(),
         })
 
         if (response.status === 401) {

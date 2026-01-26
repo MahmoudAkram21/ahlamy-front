@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json();
 
-    // Create response
+    // Create response with token included
     const nextResponse = NextResponse.json(data);
 
     // Extract all Set-Cookie headers from backend response
