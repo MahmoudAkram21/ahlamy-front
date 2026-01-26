@@ -69,10 +69,11 @@ export function buildApiUrl(path: string) {
   // Don't prepend backend URL - use as-is for same-origin requests
   // This prevents double /api/api/ in URLs
   if (path.startsWith("/api/") || path === "/api") {
+    // Return as relative path for same-origin Next.js API routes
     return path;
   }
   // For backend routes, prepend the backend URL
-  // Remove leading slash if present to avoid double slashes
+  // API_BASE_URL already includes /api, so just append the path
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE_URL}${cleanPath}`;
 }
@@ -120,7 +121,22 @@ export async function apiFetch<T = any>(
     }
   }
 
-  const response = await fetch(buildApiUrl(path), {
+  let url = buildApiUrl(path);
+  // Safety check: if URL contains /api/api/, something is wrong - fix it
+  if (url.includes("/api/api/")) {
+    console.error("[apiFetch] Double /api/api/ detected in URL:", url, "for path:", path);
+    // For Next.js API routes, use relative path directly
+    if (path.startsWith("/api/")) {
+      url = path; // Use the original path as-is
+      console.warn("[apiFetch] Using relative path for Next.js API route:", url);
+    } else {
+      // Try to fix backend URL by removing one /api/
+      url = url.replace("/api/api/", "/api/");
+      console.warn("[apiFetch] Fixed backend URL to:", url);
+    }
+  }
+
+  const response = await fetch(url, {
     credentials: authenticated ? "include" : "same-origin",
     headers,
     ...fetchOptions,
