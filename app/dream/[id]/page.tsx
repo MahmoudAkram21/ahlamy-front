@@ -1,189 +1,205 @@
-"use client"
+"use client";
 
-import { useEffect, useState, use } from "react"
-import { useRouter } from "next/navigation"
-import { BottomNavigation } from "@/components/bottom-navigation"
-import { DreamHeader } from "@/components/dream-header"
-import { DreamContentCard } from "@/components/dream-content-card"
-import { ChatMessage } from "@/components/chat-message"
-import { ChatInput } from "@/components/chat-input"
-import { DreamActions } from "@/components/dream-actions"
-import { getCurrentUser } from "@/lib/api-client"
-import { PageLoader } from "@/components/ui/preloader"
-import { buildApiUrl } from "@/lib/api-client"
+import { useEffect, useState, use } from "react";
+import { useRouter } from "next/navigation";
+import { BottomNavigation } from "@/components/bottom-navigation";
+import { DreamHeader } from "@/components/dream-header";
+import { DreamContentCard } from "@/components/dream-content-card";
+import { ChatMessage } from "@/components/chat-message";
+import { ChatInput } from "@/components/chat-input";
+import { Button } from "@/components/ui/button";
+import { getCurrentUser } from "@/lib/api-client";
+import { PageLoader } from "@/components/ui/preloader";
+import { buildApiUrl } from "@/lib/api-client";
 
 interface Message {
-  id: string
-  senderId: string
-  content: string
-  messageType: string
-  createdAt: string
+  id: string;
+  senderId: string;
+  content: string;
+  messageType: string;
+  createdAt: string;
   sender?: {
-    id: string
-    role: string
-    displayName?: string // Anonymous display name (الرائي or المفسر)
+    id: string;
+    role: string;
+    displayName?: string; // Anonymous display name (الرائي or المفسر)
     // No fullName, avatarUrl, or email - all hidden for anonymity
-  }
+  };
 }
 
 interface Dream {
-  id: string
-  title: string
-  content: string
-  status: string
-  dreamerId: string
-  interpreterId: string
-  createdAt: string
+  id: string;
+  title: string;
+  content: string;
+  status: string;
+  dreamerId: string;
+  interpreterId: string;
+  createdAt: string;
   dreamer?: {
-    id: string
-    fullName: string
-  }
+    id: string;
+    fullName: string;
+  };
 }
 
-export default function DreamDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const unwrappedParams = use(params)
-  const [dream, setDream] = useState<Dream | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [loading, setLoading] = useState(true)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [showActionsPanel, setShowActionsPanel] = useState(false)
-  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
-  const [showRejectConfirm, setShowRejectConfirm] = useState(false)
-  const router = useRouter()
+export default function DreamDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const unwrappedParams = use(params);
+  const [dream, setDream] = useState<Dream | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showActionsPanel, setShowActionsPanel] = useState(false);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log('[Dream Detail] Fetching data for dream:', unwrappedParams.id)
+        console.log(
+          "[Dream Detail] Fetching data for dream:",
+          unwrappedParams.id,
+        );
 
         // Check authentication
-        const currentUser = await getCurrentUser()
+        const currentUser = await getCurrentUser();
 
         if (!currentUser) {
-          console.log('[Dream Detail] No user found, redirecting to login')
-          router.push("/auth/login")
-          return
+          console.log("[Dream Detail] No user found, redirecting to login");
+          router.push("/auth/login");
+          return;
         }
 
-        setCurrentUserId(currentUser.user.id)
-        console.log('[Dream Detail] User authenticated:', currentUser.profile.email)
+        setCurrentUserId(currentUser.user.id);
+        console.log(
+          "[Dream Detail] User authenticated:",
+          currentUser.profile.email,
+        );
 
         // Fetch dream
-        const dreamResponse = await fetch(buildApiUrl(`/dreams/${unwrappedParams.id}`), {
-          credentials: 'include',
-        })
+        const dreamResponse = await fetch(
+          buildApiUrl(`/dreams/${unwrappedParams.id}`),
+          {
+            credentials: "include",
+          },
+        );
 
         if (dreamResponse.status === 401) {
-          router.push("/auth/login")
-          return
+          router.push("/auth/login");
+          return;
         }
 
         if (!dreamResponse.ok) {
-          console.error('[Dream Detail] Failed to fetch dream')
-          router.push("/dreams")
-          return
+          console.error("[Dream Detail] Failed to fetch dream");
+          router.push("/dreams");
+          return;
         }
 
-        const dreamData = await dreamResponse.json()
-        console.log('[Dream Detail] Dream loaded:', dreamData.title)
-        setDream(dreamData)
+        const dreamData = await dreamResponse.json();
+        console.log("[Dream Detail] Dream loaded:", dreamData.title);
+        setDream(dreamData);
 
         // Fetch messages
-        const messagesResponse = await fetch(buildApiUrl(`/messages?dream_id=${unwrappedParams.id}`), {
-          credentials: 'include',
-        })
+        const messagesResponse = await fetch(
+          buildApiUrl(`/messages?dream_id=${unwrappedParams.id}`),
+          {
+            credentials: "include",
+          },
+        );
 
         if (messagesResponse.ok) {
-          const messagesData = await messagesResponse.json()
-          console.log('[Dream Detail] Loaded', messagesData.length, 'messages')
-          setMessages(messagesData)
+          const messagesData = await messagesResponse.json();
+          console.log("[Dream Detail] Loaded", messagesData.length, "messages");
+          setMessages(messagesData);
         }
       } catch (error) {
-        console.error('[Dream Detail] Error fetching data:', error)
-        router.push("/dreams")
+        console.error("[Dream Detail] Error fetching data:", error);
+        router.push("/dreams");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [unwrappedParams.id, router])
+    fetchData();
+  }, [unwrappedParams.id, router]);
 
   const handleSendMessage = async (messageText: string) => {
-    if (!dream || !currentUserId) return
+    if (!dream || !currentUserId) return;
 
     try {
-      console.log('[Dream Detail] Sending message...')
+      console.log("[Dream Detail] Sending message...");
 
       const response = await fetch(buildApiUrl("/messages"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify({
           dream_id: dream.id,
           content: messageText,
           message_type: "text",
         }),
-      })
+      });
 
       if (response.ok) {
-        const newMessage = await response.json()
-        console.log('[Dream Detail] Message sent')
-        setMessages([...messages, newMessage])
+        const newMessage = await response.json();
+        console.log("[Dream Detail] Message sent");
+        setMessages([...messages, newMessage]);
       } else {
-        console.error('[Dream Detail] Failed to send message')
+        console.error("[Dream Detail] Failed to send message");
       }
     } catch (error) {
-      console.error('[Dream Detail] Error sending message:', error)
+      console.error("[Dream Detail] Error sending message:", error);
     }
-  }
+  };
 
   const handleMarkComplete = async () => {
-    if (!dream) return
-    setShowCompleteConfirm(false)
-    setShowActionsPanel(false)
+    if (!dream) return;
+    setShowCompleteConfirm(false);
+    setShowActionsPanel(false);
 
     try {
       const response = await fetch(buildApiUrl(`/dreams/${dream.id}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify({ status: "interpreted" }),
-      })
+      });
 
       if (response.ok) {
-        const updatedDream = await response.json()
-        setDream(updatedDream)
+        const updatedDream = await response.json();
+        setDream(updatedDream);
       }
     } catch (error) {
-      console.error("Error marking complete:", error)
+      console.error("Error marking complete:", error);
     }
-  }
+  };
 
   const handleReject = async () => {
-    if (!dream) return
-    setShowRejectConfirm(false)
-    setShowActionsPanel(false)
+    if (!dream) return;
+    setShowRejectConfirm(false);
+    setShowActionsPanel(false);
 
     try {
       const response = await fetch(buildApiUrl(`/dreams/${dream.id}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify({ status: "returned" }),
-      })
+      });
 
       if (response.ok) {
-        const updatedDream = await response.json()
-        setDream(updatedDream)
+        const updatedDream = await response.json();
+        setDream(updatedDream);
       }
     } catch (error) {
-      console.error("Error rejecting dream:", error)
+      console.error("Error rejecting dream:", error);
     }
-  }
+  };
 
   if (loading) {
-    return <PageLoader message="جاري تحميل تفاصيل الرؤية..." />
+    return <PageLoader message="جاري تحميل تفاصيل الرؤية..." />;
   }
 
   if (!dream) {
@@ -193,7 +209,7 @@ export default function DreamDetailPage({ params }: { params: Promise<{ id: stri
           الرؤيا غير موجودة
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -210,28 +226,82 @@ export default function DreamDetailPage({ params }: { params: Promise<{ id: stri
         <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-4">
           <div className="flex-1 overflow-y-auto rounded-3xl border border-sky-100 bg-white/95 p-4 shadow-inner backdrop-blur">
             {messages.length === 0 ? (
-              <div className="py-10 text-center text-slate-500">لا توجد رسائل بعد</div>
+              <div className="py-10 text-center text-slate-500">
+                لا توجد رسائل بعد
+              </div>
             ) : (
               <div className="space-y-4">
                 {messages.map((message) => (
                   <ChatMessage
                     key={message.id}
-                    type={message.senderId === currentUserId ? "user" : "interpreter"}
+                    type={
+                      message.senderId === currentUserId
+                        ? "user"
+                        : "interpreter"
+                    }
                     text={message.content}
-                    senderName={message.sender?.displayName || (message.sender?.role === 'dreamer' ? 'الرائي' : 'المفسر')}
+                    senderName={
+                      message.sender?.displayName ||
+                      (message.sender?.role === "dreamer" ? "الرائي" : "المفسر")
+                    }
                   />
                 ))}
               </div>
             )}
           </div>
 
-          {/* Show disabled state if no interpreter assigned */}
-          {!dream.interpreterId ? (
+          {/* Show payment required banner if unpaid */}
+          {dream.status === "pending_payment" ? (
+            <div className="rounded-3xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 p-8 shadow-lg text-center">
+              <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                <svg
+                  className="h-8 w-8 text-amber-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-amber-900 mb-2">
+                هذه الرؤيا بانتظار الدفع
+              </h3>
+              <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                يرجى اختيار باقة مناسبة لتفعيل الرؤيا وجعلها متاحة للمفسرين. بعد
+                الدفع، ستتمكن من التواصل مع المفسر مباشرة.
+              </p>
+              <Button
+                onClick={() =>
+                  router.push(
+                    `/plans?dreamId=${dream.id}&letterCount=${Array.from(dream.content).length}`,
+                  )
+                }
+                className="rounded-full bg-gradient-to-r from-amber-500 to-orange-400 px-8 py-4 text-lg font-bold text-white shadow-xl transition hover:-translate-y-1"
+              >
+                اختر خطة وادفع الآن
+              </Button>
+            </div>
+          ) : !dream.interpreterId ? (
             <div className="rounded-3xl border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-6 shadow-md">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 rounded-full bg-amber-100 p-2">
-                  <svg className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  <svg
+                    className="h-6 w-6 text-amber-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
                   </svg>
                 </div>
                 <div className="flex-1">
@@ -239,7 +309,9 @@ export default function DreamDetailPage({ params }: { params: Promise<{ id: stri
                     المحادثة غير متاحة حالياً
                   </h3>
                   <p className="text-sm text-amber-700 leading-relaxed">
-                    سيتم تفعيل المحادثة تلقائياً بمجرد أن يقوم المسؤول بتعيين مفسر لهذه الرؤيا. يرجى الانتظار حتى يتم تعيين مفسر متخصص للرد على رؤيتك.
+                    سيتم تفعيل المحادثة تلقائياً بمجرد أن يقوم المسؤول بتعيين
+                    مفسر لهذه الرؤيا. يرجى الانتظار حتى يتم تعيين مفسر متخصص
+                    للرد على رؤيتك.
                   </p>
                 </div>
               </div>
@@ -256,8 +328,18 @@ export default function DreamDetailPage({ params }: { params: Promise<{ id: stri
           onClick={() => setShowActionsPanel(true)}
           className="fixed left-4 bottom-32 z-30 flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-4 py-3 text-white shadow-lg transition hover:shadow-xl hover:-translate-y-1"
         >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
           </svg>
           <span className="text-sm font-semibold">خيارات الرؤيا</span>
         </button>
@@ -283,8 +365,18 @@ export default function DreamDetailPage({ params }: { params: Promise<{ id: stri
                     onClick={() => setShowActionsPanel(false)}
                     className="rounded-full bg-white/20 p-2 hover:bg-white/30 transition"
                   >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -298,8 +390,18 @@ export default function DreamDetailPage({ params }: { params: Promise<{ id: stri
                   className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-green-400 p-4 text-white shadow-md hover:shadow-lg transition hover:-translate-y-0.5"
                 >
                   <div className="flex items-center gap-3">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <span className="font-semibold">تم التفسير</span>
                   </div>
@@ -311,8 +413,18 @@ export default function DreamDetailPage({ params }: { params: Promise<{ id: stri
                   className="w-full rounded-2xl bg-gradient-to-r from-rose-500 to-red-400 p-4 text-white shadow-md hover:shadow-lg transition hover:-translate-y-0.5"
                 >
                   <div className="flex items-center gap-3">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <span className="font-semibold">إرجاع الرؤيا</span>
                   </div>
@@ -330,11 +442,23 @@ export default function DreamDetailPage({ params }: { params: Promise<{ id: stri
             <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
               <div className="text-center">
                 <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-                  <svg className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    className="h-8 w-8 text-emerald-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">تأكيد إتمام التفسير</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  تأكيد إتمام التفسير
+                </h3>
                 <p className="text-slate-600 mb-6">
                   هل أنت متأكد من أنك قمت بتفسير هذه الرؤيا بالكامل؟
                 </p>
@@ -365,11 +489,23 @@ export default function DreamDetailPage({ params }: { params: Promise<{ id: stri
             <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
               <div className="text-center">
                 <div className="mx-auto w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mb-4">
-                  <svg className="h-8 w-8 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  <svg
+                    className="h-8 w-8 text-rose-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">تأكيد إرجاع الرؤيا</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  تأكيد إرجاع الرؤيا
+                </h3>
                 <p className="text-slate-600 mb-6">
                   هل أنت متأكد من إرجاع هذه الرؤيا؟ سيتم إعادتها إلى صاحبها.
                 </p>
@@ -395,5 +531,5 @@ export default function DreamDetailPage({ params }: { params: Promise<{ id: stri
 
       <BottomNavigation />
     </div>
-  )
+  );
 }

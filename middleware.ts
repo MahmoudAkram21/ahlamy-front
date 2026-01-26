@@ -20,6 +20,9 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("auth_token")?.value;
   const isAuthenticated = !!token;
 
+  // Debug logging for auth status
+  console.log(`[Middleware] Path: ${pathname}, Authenticated: ${isAuthenticated} ${token ? '(Token present)' : '(No token)'}`);
+
   // Protected routes that require authentication
   const protectedRoutes = ["/dashboard", "/dreams", "/admin", "/interpreter"];
 

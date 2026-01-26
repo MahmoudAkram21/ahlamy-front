@@ -3,8 +3,7 @@
  * Communicates with standalone backend server on port 5000
  */
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
+const API_BASE_URL = "/api";
   // process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
 // ============================================
 // TypeScript Interfaces
@@ -69,77 +68,16 @@ export function buildApiUrl(path: string) {
   // Don't prepend backend URL - use as-is for same-origin requests
   // This prevents double /api/api/ in URLs
   if (path.startsWith("/api/") || path === "/api") {
-    // Return as relative path for same-origin Next.js API routes
     return path;
   }
   // For backend routes, prepend the backend URL
-  // API_BASE_URL already includes /api, so just append the path
+  // Remove leading slash if present to avoid double slashes
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE_URL}${cleanPath}`;
 }
 
-/**
- * Get authentication headers for fetch requests
- * Use this when calling fetch directly instead of apiFetch
- */
-export function getAuthHeaders(): HeadersInit {
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
-  
-  // Try to get token from localStorage (for cross-origin) or cookie
-  let token = getAuthTokenFromStorage();
-  if (!token) {
-    token = getAuthTokenFromCookie();
-  }
-  
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  
-  return headers;
-}
-
 export interface ApiRequestOptions extends RequestInit {
   authenticated?: boolean;
-}
-
-const AUTH_TOKEN_KEY = 'auth_token';
-
-/**
- * Get auth token from localStorage (for cross-origin requests)
- */
-function getAuthTokenFromStorage(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return localStorage.getItem(AUTH_TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Store auth token in localStorage
- */
-function setAuthTokenInStorage(token: string): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
-  } catch {
-    // Ignore storage errors
-  }
-}
-
-/**
- * Remove auth token from localStorage
- */
-function removeAuthTokenFromStorage(): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-  } catch {
-    // Ignore storage errors
-  }
 }
 
 /**
@@ -173,35 +111,15 @@ export async function apiFetch<T = any>(
     ...(options.headers as Record<string, string> || {}),
   };
 
-  // Try to get token from localStorage (for cross-origin) or cookie and add to Authorization header
+  // Try to get token from cookie and add to Authorization header as fallback
   if (authenticated) {
-    // Prefer localStorage for cross-origin requests
-    let token = getAuthTokenFromStorage();
-    // Fallback to cookie for same-origin requests
-    if (!token) {
-      token = getAuthTokenFromCookie();
-    }
+    const token = getAuthTokenFromCookie();
     if (token && !headers['Authorization']) {
       headers['Authorization'] = `Bearer ${token}`;
     }
   }
 
-  let url = buildApiUrl(path);
-  // Safety check: if URL contains /api/api/, something is wrong - fix it
-  if (url.includes("/api/api/")) {
-    console.error("[apiFetch] Double /api/api/ detected in URL:", url, "for path:", path);
-    // For Next.js API routes, use relative path directly
-    if (path.startsWith("/api/")) {
-      url = path; // Use the original path as-is
-      console.warn("[apiFetch] Using relative path for Next.js API route:", url);
-    } else {
-      // Try to fix backend URL by removing one /api/
-      url = url.replace("/api/api/", "/api/");
-      console.warn("[apiFetch] Fixed backend URL to:", url);
-    }
-  }
-
-  const response = await fetch(url, {
+  const response = await fetch(buildApiUrl(path), {
     credentials: authenticated ? "include" : "same-origin",
     headers,
     ...fetchOptions,
@@ -262,20 +180,13 @@ export const authApi = {
 export async function login(
   email: string,
   password: string
-): Promise<{ user: User; profile: Profile; token?: string } | null> {
+): Promise<{ user: User; profile: Profile } | null> {
   try {
     // Use Next.js API route for cookie handling
-    const result = await apiFetch<{ user: User; profile: Profile; token?: string }>("/api/auth/login", {
+    return await apiFetch("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-    
-    // Store token in localStorage for cross-origin requests
-    if (result?.token) {
-      setAuthTokenInStorage(result.token);
-    }
-    
-    return result;
   } catch (error) {
     console.error("[Auth] Login error:", error);
     return null;
@@ -290,20 +201,13 @@ export async function register(
   password: string,
   fullName: string,
   role: "dreamer" | "interpreter" = "dreamer"
-): Promise<{ user: User; profile: Profile; token?: string } | null> {
+): Promise<{ user: User; profile: Profile } | null> {
   try {
     // Use Next.js API route for cookie handling
-    const result = await apiFetch<{ user: User; profile: Profile; token?: string }>("/api/auth/register", {
+    return await apiFetch("/api/auth/register", {
       method: "POST",
       body: JSON.stringify({ email, password, fullName, role }),
     });
-    
-    // Store token in localStorage for cross-origin requests
-    if (result?.token) {
-      setAuthTokenInStorage(result.token);
-    }
-    
-    return result;
   } catch (error) {
     console.error("[Auth] Registration error:", error);
     return null;
@@ -316,13 +220,9 @@ export async function register(
 export async function logout(): Promise<boolean> {
   try {
     await authApi.logout();
-    // Remove token from localStorage
-    removeAuthTokenFromStorage();
     return true;
   } catch (error) {
     console.error("[Auth] Logout error:", error);
-    // Still remove token even if logout request fails
-    removeAuthTokenFromStorage();
     return false;
   }
 }

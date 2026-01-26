@@ -1,58 +1,67 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { BottomNavigation } from "@/components/bottom-navigation"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getCurrentUser } from "@/lib/api-client"
-import { PageLoader } from "@/components/ui/preloader"
-import { buildApiUrl } from "@/lib/api-client"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { BottomNavigation } from "@/components/bottom-navigation";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getCurrentUser } from "@/lib/api-client";
+import { PageLoader } from "@/components/ui/preloader";
+import { buildApiUrl } from "@/lib/api-client";
 
 export default function NewDreamPage() {
-  const [title, setTitle] = useState("")
-  const [content, setContent] = useState("")
-  const [dreamDate, setDreamDate] = useState("")
-  const [mood, setMood] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [checkingAuth, setCheckingAuth] = useState(true)
-  const router = useRouter()
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [dreamDate, setDreamDate] = useState("");
+  const [mood, setMood] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const currentUser = await getCurrentUser()
+        const currentUser = await getCurrentUser();
 
         if (!currentUser) {
-          console.log('[New Dream] No user found, redirecting to login')
-          router.push("/auth/login")
-          return
+          console.log("[New Dream] No user found, redirecting to login");
+          router.push("/auth/login");
+          return;
         }
 
-        console.log('[New Dream] User authenticated:', currentUser.profile.email)
-        setIsAuthenticated(true)
+        console.log(
+          "[New Dream] User authenticated:",
+          currentUser.profile.email,
+        );
+        setIsAuthenticated(true);
       } catch (error) {
-        console.error('[New Dream] Auth check failed:', error)
-        router.push("/auth/login")
+        console.error("[New Dream] Auth check failed:", error);
+        router.push("/auth/login");
       } finally {
-        setCheckingAuth(false)
+        setCheckingAuth(false);
       }
-    }
+    };
 
-    checkUser()
-  }, [router])
+    checkUser();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
     try {
       const response = await fetch(buildApiUrl("/dreams"), {
@@ -65,47 +74,62 @@ export default function NewDreamPage() {
           dream_date: dreamDate,
           mood,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        const errorMessage = errorData.error || "فشل في إنشاء الرؤيا"
-        throw new Error(errorMessage)
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || "فشل في إنشاء الرؤيا";
+        throw new Error(errorMessage);
       }
 
-      const dream = await response.json()
-      const letterCount = Array.from(content).length
-      console.log('[New Dream] Dream created:', dream.id)
-      // Redirect to plans page with letter count to highlight matching plans
-      router.push(`/plans?dreamId=${dream.id}&letterCount=${letterCount}`)
+      const dream = await response.json();
+      const letterCount = Array.from(content).length;
+      console.log(
+        "[New Dream] Dream created:",
+        dream.id,
+        "Status:",
+        dream.status,
+      );
+
+      // If status is 'new' (typical for admins), skip plans and go to detail
+      if (dream.status === "new") {
+        router.push(`/dream/${dream.id}`);
+      } else {
+        // Redirect to plans page with letter count to highlight matching plans
+        router.push(`/plans?dreamId=${dream.id}&letterCount=${letterCount}`);
+      }
     } catch (err) {
-      console.error('[New Dream] Error creating dream:', err)
-      setError(err instanceof Error ? err.message : "حدث خطأ ما")
+      console.error("[New Dream] Error creating dream:", err);
+      setError(err instanceof Error ? err.message : "حدث خطأ ما");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (checkingAuth) {
-    return <PageLoader message="جاري التحقق من الحساب..." />
+    return <PageLoader message="جاري التحقق من الحساب..." />;
   }
 
   if (!isAuthenticated) {
-    return null
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
       <header className="rounded-b-[2rem] bg-gradient-to-br from-sky-600 via-sky-500 to-amber-300 px-4 py-10 text-center text-white shadow-xl">
         <h1 className="text-3xl font-bold">شارك رؤيتك</h1>
-        <p className="mt-2 text-sm text-white/80">كل التفاصيل تساعد مفسرينا على قراءة رؤاك بدقة أكبر.</p>
+        <p className="mt-2 text-sm text-white/80">
+          كل التفاصيل تساعد مفسرينا على قراءة رؤاك بدقة أكبر.
+        </p>
       </header>
 
       <main className="mx-auto mt-6 w-full max-w-3xl px-4">
         <Card className="rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg backdrop-blur">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">عنوان الرؤيا</label>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                عنوان الرؤيا
+              </label>
               <Input
                 type="text"
                 value={title}
@@ -119,9 +143,14 @@ export default function NewDreamPage() {
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <label className="block text-sm font-semibold text-slate-700">تفاصيل الرؤيا</label>
+                <label className="block text-sm font-semibold text-slate-700">
+                  تفاصيل الرؤيا
+                </label>
                 <span className="text-xs font-medium text-slate-500">
-                  عدد الأحرف: <span className="text-sky-600">{Array.from(content).length}</span>
+                  عدد الأحرف:{" "}
+                  <span className="text-sky-600">
+                    {Array.from(content).length}
+                  </span>
                 </span>
               </div>
               <Textarea
@@ -137,7 +166,9 @@ export default function NewDreamPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">تاريخ الرؤيا</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  تاريخ الرؤيا
+                </label>
                 <Input
                   type="date"
                   value={dreamDate}
@@ -148,7 +179,9 @@ export default function NewDreamPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">الحالة المزاجية</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  الحالة المزاجية
+                </label>
                 <Select value={mood} onValueChange={setMood}>
                   <SelectTrigger className="rounded-2xl bg-slate-50">
                     <SelectValue placeholder="اختر الحالة المزاجية" />
@@ -184,5 +217,5 @@ export default function NewDreamPage() {
 
       <BottomNavigation />
     </div>
-  )
+  );
 }

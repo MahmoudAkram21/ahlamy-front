@@ -45,45 +45,53 @@ export async function POST(request: NextRequest) {
     // Extract all Set-Cookie headers from backend response
     const setCookieHeaders = response.headers.getSetCookie?.() || [];
     
+    // Log for debugging (server-side only)
+    console.log(`[API Auth Register] Backend returned ${setCookieHeaders.length} cookies`);
+
+    let token = null;
+
     // Find the auth_token cookie
     for (const cookieHeader of setCookieHeaders) {
       if (cookieHeader.includes("auth_token=")) {
-        // Extract the token value from the cookie string
         const match = cookieHeader.match(/auth_token=([^;]+)/);
         if (match && match[1]) {
-          const token = match[1];
-          
-          // Set the cookie on the frontend domain
-          nextResponse.cookies.set({
-            name: "auth_token",
-            value: token,
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-            path: "/",
-          });
-          
+          token = match[1];
           break;
         }
       }
     }
 
-    // Also try to get from response headers directly (for older Node.js versions)
-    const setCookieHeader = response.headers.get("set-cookie");
-    if (setCookieHeader && !nextResponse.cookies.get("auth_token")) {
-      const match = setCookieHeader.match(/auth_token=([^;,\s]+)/);
-      if (match && match[1]) {
-        nextResponse.cookies.set({
-          name: "auth_token",
-          value: match[1],
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          maxAge: 60 * 60 * 24 * 7,
-          path: "/",
-        });
+    // Fallback: search in single set-cookie header
+    if (!token) {
+      const singleSetCookie = response.headers.get("set-cookie");
+      if (singleSetCookie) {
+        const match = singleSetCookie.match(/auth_token=([^;,\s]+)/);
+        if (match && match[1]) {
+          token = match[1];
+        }
       }
+    }
+
+    if (token) {
+      console.log("[API Auth Register] Setting auth_token cookie on client");
+      
+      // Determine if we should use secure flag
+      // Only use secure if in production AND not on localhost
+      const isProduction = process.env.NODE_ENV === "production";
+      const isLocalhost = request.nextUrl.hostname === "localhost" || request.nextUrl.hostname === "127.0.0.1";
+      const useSecure = isProduction && !isLocalhost;
+
+      nextResponse.cookies.set({
+        name: "auth_token",
+        value: token,
+        httpOnly: false,
+        secure: useSecure,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        path: "/",
+      });
+    } else {
+      console.warn("[API Auth Register] No auth_token found in backend response");
     }
 
     return nextResponse;
