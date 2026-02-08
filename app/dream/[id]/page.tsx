@@ -16,13 +16,14 @@ interface Message {
   id: string;
   senderId: string;
   content: string;
-  messageType: string;
+  messageType?: string;
   createdAt: string;
+  editedAt?: string | null;
   sender?: {
     id: string;
-    role: string;
-    displayName?: string; // Anonymous display name (الرائي or المفسر)
-    // No fullName, avatarUrl, or email - all hidden for anonymity
+    role?: string;
+    fullName?: string;
+    displayName?: string;
   };
 }
 
@@ -38,6 +39,7 @@ interface Dream {
     id: string;
     fullName: string;
   };
+  interpreterRating?: { rating: number } | null;
 }
 
 export default function DreamDetailPage({
@@ -53,6 +55,10 @@ export default function DreamDetailPage({
   const [showActionsPanel, setShowActionsPanel] = useState(false);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const [visionReopenedForChat, setVisionReopenedForChat] = useState(false);
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [requestIdForChat, setRequestIdForChat] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -101,18 +107,41 @@ export default function DreamDetailPage({
         console.log("[Dream Detail] Dream loaded:", dreamData.title);
         setDream(dreamData);
 
-        // Fetch messages
-        const messagesResponse = await fetch(
-          buildApiUrl(`/messages?dream_id=${unwrappedParams.id}`),
-          {
+        let requestId: string | null = null;
+        if (dreamData.interpreterId) {
+          const requestsRes = await fetch(buildApiUrl("/requests"), {
             credentials: "include",
-          },
-        );
+          });
+          if (requestsRes.ok) {
+            const requestsList = await requestsRes.json();
+            const reqForDream = Array.isArray(requestsList)
+              ? requestsList.find((r: { dream?: { id: string } }) => r.dream?.id === dreamData.id)
+              : null;
+            if (reqForDream?.id) {
+              requestId = reqForDream.id;
+              setRequestIdForChat(reqForDream.id);
+            }
+          }
+        }
 
-        if (messagesResponse.ok) {
-          const messagesData = await messagesResponse.json();
-          console.log("[Dream Detail] Loaded", messagesData.length, "messages");
-          setMessages(messagesData);
+        if (requestId) {
+          const chatRes = await fetch(
+            buildApiUrl(`/chat?request_id=${requestId}`),
+            { credentials: "include" },
+          );
+          if (chatRes.ok) {
+            const chatData = await chatRes.json();
+            setMessages(Array.isArray(chatData) ? chatData : []);
+          }
+        } else {
+          const messagesResponse = await fetch(
+            buildApiUrl(`/messages?dream_id=${unwrappedParams.id}`),
+            { credentials: "include" },
+          );
+          if (messagesResponse.ok) {
+            const messagesData = await messagesResponse.json();
+            setMessages(messagesData || []);
+          }
         }
       } catch (error) {
         console.error("[Dream Detail] Error fetching data:", error);
@@ -198,6 +227,28 @@ export default function DreamDetailPage({
     }
   };
 
+  const handleRateInterpreter = async (stars: number) => {
+    if (!dream) return;
+    setRatingSubmitting(true);
+    try {
+      const response = await fetch(buildApiUrl(`/dreams/${dream.id}/rate`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ rating: stars }),
+      });
+      if (response.ok) {
+        setDream((prev) =>
+          prev ? { ...prev, interpreterRating: { rating: stars } } : prev
+        );
+      }
+    } catch (error) {
+      console.error("Error rating interpreter:", error);
+    } finally {
+      setRatingSubmitting(false);
+    }
+  };
+
   if (loading) {
     return <PageLoader message="جاري تحميل تفاصيل الرؤية..." />;
   }
@@ -224,28 +275,49 @@ export default function DreamDetailPage({
 
       <div className="flex-1 px-4">
         <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-4">
-          <div className="flex-1 overflow-y-auto rounded-3xl border border-sky-100 bg-white/95 p-4 shadow-inner backdrop-blur">
-            {messages.length === 0 ? (
-              <div className="py-10 text-center text-slate-500">
-                لا توجد رسائل بعد
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <ChatMessage
-                    key={message.id}
-                    type={
-                      message.senderId === currentUserId
-                        ? "user"
-                        : "interpreter"
-                    }
-                    text={message.content}
-                    senderName={
-                      message.sender?.displayName ||
-                      (message.sender?.role === "dreamer" ? "الرائي" : "المفسر")
-                    }
-                  />
-                ))}
+          <div className="rounded-3xl border border-sky-100 bg-white/95 shadow-inner backdrop-blur overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setMessagesOpen((prev) => !prev)}
+              className="w-full flex items-center justify-between gap-2 px-4 py-3 text-right hover:bg-sky-50/50 transition"
+            >
+              <span className="text-sm font-semibold text-slate-700">
+                الرسائل {messages.length > 0 && `(${messages.length})`}
+              </span>
+              <svg
+                className={`h-5 w-5 text-slate-500 transition-transform ${messagesOpen ? "rotate-180" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {messagesOpen && (
+              <div className="flex-1 overflow-y-auto max-h-[320px] p-4 pt-0 border-t border-sky-100">
+                {messages.length === 0 ? (
+                  <div className="py-8 text-center text-slate-500 text-sm">
+                    لا توجد رسائل بعد
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((message) => (
+                      <ChatMessage
+                        key={message.id}
+                        type={
+                          message.senderId === currentUserId
+                            ? "user"
+                            : "interpreter"
+                        }
+                        text={message.content}
+                        senderName={
+                          message.sender?.displayName ||
+                          (message.sender?.role === "dreamer" ? "الرائي" : "المفسر")
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -317,7 +389,64 @@ export default function DreamDetailPage({
               </div>
             </div>
           ) : (
-            <ChatInput onSend={handleSendMessage} />
+            <>
+              {/* تقييم المفسر — للرائي فقط بعد اكتمال التفسير */}
+              {String(dream.status || "").toLowerCase() === "interpreted" &&
+                dream.dreamerId === currentUserId && (
+                  <div className="rounded-3xl border border-sky-100 bg-white/95 p-4 shadow-md mb-4">
+                    <p className="text-sm font-semibold text-slate-700 text-center mb-2">
+                      قيّم المفسر
+                    </p>
+                    {dream.interpreterRating ? (
+                      <p className="text-sm text-amber-600 text-center">
+                        شكراً، قيّمت المفسر بـ {dream.interpreterRating.rating} نجوم
+                      </p>
+                    ) : (
+                      <div className="flex justify-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            disabled={ratingSubmitting}
+                            onClick={() => handleRateInterpreter(star)}
+                            className="p-1 rounded transition hover:scale-110 disabled:opacity-50"
+                            aria-label={`${star} نجوم`}
+                          >
+                            <svg
+                              className="h-8 w-8 text-amber-400 hover:text-amber-500"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              {(() => {
+                const isInterpreted =
+                  String(dream.status || "").toLowerCase() === "interpreted"
+                if (isInterpreted && !visionReopenedForChat) {
+                  return (
+                    <div className="rounded-3xl border border-sky-100 bg-white/95 p-4 shadow-md">
+                      <p className="text-sm text-slate-600 text-center mb-3">
+                        تم تفسير هذه الرؤيا. لكتابة رسالة جديدة يمكنك إعادة فتح الرؤية للمحادثة.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setVisionReopenedForChat(true)}
+                        className="w-full rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-4 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg transition"
+                      >
+                        إعادة فتح الرؤية للمحادثة
+                      </button>
+                    </div>
+                  )
+                }
+                return <ChatInput onSend={handleSendMessage} />
+              })()}
+            </>
           )}
         </div>
       </div>
@@ -382,53 +511,69 @@ export default function DreamDetailPage({
                 </div>
               </div>
 
-              {/* Content */}
+              {/* Content: تم التفسير for interpreter only; إرجاع الرؤيا for both when interpreted */}
               <div className="flex-1 p-6 space-y-4">
-                {/* Complete button */}
-                <button
-                  onClick={() => setShowCompleteConfirm(true)}
-                  className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-green-400 p-4 text-white shadow-md hover:shadow-lg transition hover:-translate-y-0.5"
-                >
-                  <div className="flex items-center gap-3">
-                    <svg
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                {(() => {
+                  const isInterpreted =
+                    String(dream?.status || "").toLowerCase() === "interpreted"
+                  const isInterpreter =
+                    dream != null && currentUserId != null && dream.interpreterId === currentUserId
+                  if (!isInterpreted) {
+                    if (isInterpreter) {
+                      return (
+                        <button
+                          onClick={() => setShowCompleteConfirm(true)}
+                          className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-green-400 p-4 text-white shadow-md hover:shadow-lg transition hover:-translate-y-0.5"
+                        >
+                          <div className="flex items-center gap-3">
+                            <svg
+                              className="h-6 w-6"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            <span className="font-semibold">تم التفسير</span>
+                          </div>
+                        </button>
+                      )
+                    }
+                    return (
+                      <p className="text-center text-slate-500 text-sm py-2">
+                        فقط المفسر يمكنه إتمام التفسير
+                      </p>
+                    )
+                  }
+                  return (
+                    <button
+                      onClick={() => setShowRejectConfirm(true)}
+                      className="w-full rounded-2xl bg-gradient-to-r from-rose-500 to-red-400 p-4 text-white shadow-md hover:shadow-lg transition hover:-translate-y-0.5"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <span className="font-semibold">تم التفسير</span>
-                  </div>
-                </button>
-
-                {/* Reject button */}
-                <button
-                  onClick={() => setShowRejectConfirm(true)}
-                  className="w-full rounded-2xl bg-gradient-to-r from-rose-500 to-red-400 p-4 text-white shadow-md hover:shadow-lg transition hover:-translate-y-0.5"
-                >
-                  <div className="flex items-center gap-3">
-                    <svg
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <span className="font-semibold">إرجاع الرؤيا</span>
-                  </div>
-                </button>
+                      <div className="flex items-center gap-3">
+                        <svg
+                          className="h-6 w-6"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span className="font-semibold">إرجاع الرؤيا</span>
+                      </div>
+                    </button>
+                  )
+                })()}
               </div>
             </div>
           </div>

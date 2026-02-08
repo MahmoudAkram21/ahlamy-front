@@ -24,6 +24,7 @@ import {
   Facebook,
   Instagram,
   Music,
+  CreditCard,
 } from "lucide-react"
 
 import type { Profile } from "@/lib/api-client"
@@ -72,24 +73,9 @@ export function SideMenu({ open, onClose, profile }: SideMenuProps) {
         dividerBefore: true,
       },
       {
-        label: "انشر التطبيق",
-        href: "/share",
-        icon: <Share2 size={20} />,
-      },
-      {
-        label: "من نحن",
-        href: "/about",
-        icon: <Info size={20} />,
-      },
-      {
         label: "انضم لفريق المعبّرين",
         href: "/join",
         icon: <Users size={20} />,
-      },
-      {
-        label: "كيفية طلب تفسير رؤيا",
-        href: "/guide",
-        icon: <BookOpen size={20} />,
       },
       {
         label: "الشروط والأحكام",
@@ -117,10 +103,11 @@ export function SideMenu({ open, onClose, profile }: SideMenuProps) {
         icon: <Monitor size={20} />,
       },
       {
-        label: "صفحتنا على معروف",
-        href: "https://maroof.sa/",
-        icon: <BadgeCheck size={20} />,
+        label: "باقات احلامي ",
+        href: "/plans", 
+        icon: <CreditCard size={20} />,
       },
+      
     ]
 
     if (isAdmin) {

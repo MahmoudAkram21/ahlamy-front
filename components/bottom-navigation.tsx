@@ -19,7 +19,7 @@ export function BottomNavigation() {
   const navItems: NavItem[] = [
     { href: "/", label: "الرئيسية", icon: <Home size={22} /> },
     { href: "/dreams", label: "رؤاي", icon: <Moon size={22} /> },
-    { href: "/dashboard", label: "لوحة", icon: <LayoutDashboard size={22} /> },
+    { href: "/dashboard", label: "غرفه التحكم", icon: <LayoutDashboard size={22} /> },
     { href: "/good-news", label: "إشراقات", icon: <Sparkles size={22} /> },
     { href: "/account", label: "حسابي", icon: <User size={22} /> },
   ]

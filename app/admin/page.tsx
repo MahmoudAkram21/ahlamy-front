@@ -140,6 +140,13 @@ export default function AdminPage() {
             <h3 className="mb-2 text-xl font-bold text-slate-900">التحليلات</h3>
             <p className="text-sm text-slate-500">عرض التقارير والإحصائيات</p>
           </button>
+          <button
+            onClick={() => router.push("/admin/content")}
+            className="rounded-3xl border border-sky-100 bg-white/95 p-6 text-right shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+          >
+            <h3 className="mb-2 text-xl font-bold text-slate-900">تحرير صفحات القائمة</h3>
+            <p className="text-sm text-slate-500">تحرير محتوى الشروط والأحكام وخدمة العملاء وغيرها</p>
+          </button>
         </section>
       </main>
 

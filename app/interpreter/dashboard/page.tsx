@@ -7,6 +7,7 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { buildApiUrl } from "@/lib/api-client"
+import { FileText, Download } from "lucide-react"
 
 interface Request {
   id: string
@@ -22,9 +23,19 @@ interface Stats {
   pending: number
 }
 
+const VISION_TYPE_LABELS: Record<string, string> = {
+  gold_sa: "ذهبي سعودي",
+  silver_sa: "فضي سعودي",
+  bronze_sa: "برونزي سعودي",
+  gold_eg: "ذهبي مصري",
+  silver_eg: "فضي مصري",
+  bronze_eg: "برونزي مصري",
+}
+
 export default function InterpreterDashboard() {
   const [requests, setRequests] = useState<Request[]>([])
   const [stats, setStats] = useState<Stats>({ total: 0, completed: 0, pending: 0 })
+  const [statsByType, setStatsByType] = useState<{ counts: Record<string, number>; total: number; month: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -32,26 +43,21 @@ export default function InterpreterDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log('[Interpreter Dashboard] Fetching requests...')
-        
-        const response = await fetch(buildApiUrl('/requests'), {
-          method: 'GET',
-          credentials: 'include',
-        })
+        const [requestsRes, statsRes] = await Promise.all([
+          fetch(buildApiUrl("/requests"), { method: "GET", credentials: "include" }),
+          fetch(buildApiUrl("/profile/interpretation-stats-by-type"), { credentials: "include" }),
+        ])
 
-        if (response.status === 401) {
-          console.log('[Interpreter Dashboard] Unauthorized, redirecting to login')
-          router.push('/auth/login')
+        if (requestsRes.status === 401) {
+          router.push("/auth/login")
           return
         }
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch requests')
+        if (!requestsRes.ok) {
+          throw new Error("Failed to fetch requests")
         }
 
-        const requestsData = await response.json()
-        console.log('[Interpreter Dashboard] Fetched', requestsData.length, 'requests')
-        
+        const requestsData = await requestsRes.json()
         setRequests(requestsData || [])
 
         const completed = requestsData?.filter((r: Request) => r.status === "completed").length || 0
@@ -62,9 +68,14 @@ export default function InterpreterDashboard() {
           completed,
           pending,
         })
-      } catch (error) {
-        console.error('[Interpreter Dashboard] Error fetching data:', error)
-        setError('فشل تحميل البيانات')
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json()
+          setStatsByType({ counts: statsData.counts || {}, total: statsData.total ?? 0, month: statsData.month || "" })
+        }
+      } catch (err) {
+        console.error("[Interpreter Dashboard] Error:", err)
+        setError("فشل تحميل البيانات")
       } finally {
         setLoading(false)
       }
@@ -72,6 +83,24 @@ export default function InterpreterDashboard() {
 
     fetchData()
   }, [router])
+
+  const handleExport = async (format: string) => {
+    try {
+      const url = `${buildApiUrl("/profile/interpretation-stats-by-type/export")}?format=${format}`
+      const res = await fetch(url, { credentials: "include" })
+      if (!res.ok) return
+      const blob = await res.blob()
+      const disposition = res.headers.get("Content-Disposition")
+      const filename = disposition?.match(/filename="?([^";]+)"?/)?.[1] || `vision-stats.${format}`
+      const a = document.createElement("a")
+      a.href = URL.createObjectURL(blob)
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   if (loading) {
     return (
@@ -118,6 +147,38 @@ export default function InterpreterDashboard() {
               <div className="mt-1 text-sm text-amber-500">قيد الانتظار</div>
             </div>
           </div>
+        </section>
+
+        <section className="rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg backdrop-blur">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-slate-900 text-right">عداد الرؤى حسب النوع (هذا الشهر)</h2>
+            {statsByType?.month && <span className="text-sm text-slate-500">{statsByType.month}</span>}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="rounded-full" onClick={() => handleExport("txt")}>
+                <FileText size={16} className="ml-1" />
+                تصدير ورقة
+              </Button>
+              <Button variant="outline" size="sm" className="rounded-full" onClick={() => handleExport("json")}>
+                <Download size={16} className="ml-1" />
+                تصدير JSON
+              </Button>
+            </div>
+          </div>
+          {statsByType ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {Object.entries(VISION_TYPE_LABELS).map(([key, label]) => (
+                <div key={key} className="rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-center">
+                  <p className="text-xs text-slate-500">{label}</p>
+                  <p className="text-lg font-bold text-sky-700">{statsByType.counts[key] ?? 0}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-sm text-slate-500 py-4">لا توجد إحصائيات لهذا الشهر.</p>
+          )}
+          {statsByType && statsByType.total > 0 && (
+            <p className="mt-3 text-center text-sm font-semibold text-slate-700">الإجمالي: {statsByType.total}</p>
+          )}
         </section>
 
         <section className="space-y-4">

@@ -172,7 +172,14 @@ export default function AdminDreamsPage() {
                 <Card key={dream.id} className="rounded-2xl border border-sky-100 bg-white/95 p-5 shadow-sm">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="space-y-2">
-                      <h3 className="text-base font-semibold text-slate-900">{dream.title}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base font-semibold text-slate-900">{dream.title}</h3>
+                        {dream.status === "returned" && (
+                          <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                            مرتجعة
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500">
                         {dream.dreamer.fullName || dream.dreamer.email} •{" "}
                         {new Date(dream.createdAt).toLocaleDateString("ar-SA", { day: "numeric", month: "long", year: "numeric" })}

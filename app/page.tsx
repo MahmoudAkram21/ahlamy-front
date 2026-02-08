@@ -48,11 +48,7 @@ interface CommunityDream {
 const quickLinks: QuickLink[] = [
   { title: "القرآن الكريم", icon: "📖", href: "/quran", accent: "from-sky-400 to-sky-200" },
   { title: "الأذكار والأدعية", icon: "🤲", href: "/adhkar", accent: "from-emerald-400 to-emerald-200" },
-  { title: "مواقيت الصلاة", icon: "🕰️", href: "/prayer-times", accent: "from-amber-400 to-amber-200" },
-  { title: "قصص وعبر", icon: "📜", href: "/stories", accent: "from-rose-400 to-rose-200" },
-  { title: "فتاوى الرؤى", icon: "⚖️", href: "/fatwa", accent: "from-indigo-400 to-indigo-200" },
   { title: "القبلة", icon: "🧭", href: "/qibla", accent: "from-sky-500 to-sky-300" },
-  { title: "مقالات وفوائد", icon: "📝", href: "/articles", accent: "from-violet-400 to-violet-200" },
   { title: "الرقية الشرعية", icon: "🛡️", href: "/ruqya", accent: "from-teal-400 to-teal-200" },
 ]
 
@@ -252,7 +248,7 @@ export default function HomePage() {
 
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-900">آراء المستخدمين</h2>
+            <h2 className="text-lg font-bold text-slate-900">اراء عملاء احلامي</h2>
             <button className="text-sm font-medium text-sky-600">المزيد</button>
           </div>
 

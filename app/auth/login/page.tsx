@@ -75,7 +75,7 @@ export default function LoginPage() {
               placeholder="••••••••"
               required
               disabled={loading}
-            />
+            />ّ
           </div>
 
           {error && <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
