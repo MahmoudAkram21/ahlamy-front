@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PageLoader } from "@/components/ui/preloader";
-import { buildApiUrl } from "@/lib/api-client";
+import { buildApiUrl, getCurrentUser } from "@/lib/api-client";
 
 interface Dream {
   id: string;
@@ -19,23 +19,43 @@ interface Dream {
 }
 
 export default function DreamsPage() {
+  const searchParams = useSearchParams();
+  const statusFilter = searchParams.get("status");
   const [dreams, setDreams] = useState<Dream[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const router = useRouter();
+
+  const filteredDreams = useMemo(() => {
+    if (!statusFilter || statusFilter === "total") return dreams;
+    return dreams.filter((d) => d.status === statusFilter);
+  }, [dreams, statusFilter]);
 
   useEffect(() => {
     const fetchDreams = async () => {
       try {
-        console.log("[Dreams] Fetching dreams...");
+        const currentUser = await getCurrentUser();
+        if (!currentUser) {
+          router.push("/auth/login");
+          return;
+        }
+        const userRole = currentUser.profile?.role ?? "dreamer";
+        setRole(userRole);
 
-        const response = await fetch(buildApiUrl("/dreams"), {
+        const endpoint =
+          userRole === "interpreter"
+            ? "/dreams/assigned"
+            : userRole === "admin" || userRole === "super_admin"
+              ? "/dreams"
+              : "/dreams/my-dreams";
+
+        const response = await fetch(buildApiUrl(endpoint), {
           method: "GET",
           credentials: "include",
         });
 
         if (response.status === 401) {
-          console.log("[Dreams] Unauthorized, redirecting to login");
           router.push("/auth/login");
           return;
         }
@@ -45,10 +65,9 @@ export default function DreamsPage() {
         }
 
         const data = await response.json();
-        console.log("[Dreams] Fetched", data.length, "dreams");
         setDreams(data);
-      } catch (error) {
-        console.error("[Dreams] Error fetching dreams:", error);
+      } catch (err) {
+        console.error("[Dreams] Error fetching dreams:", err);
         setError("فشل تحميل الرؤى");
       } finally {
         setLoading(false);
@@ -103,43 +122,80 @@ export default function DreamsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
       <header className="rounded-b-[2rem] bg-gradient-to-br from-sky-600 via-sky-500 to-amber-300 px-4 py-10 text-center text-white shadow-xl">
-        <h1 className="text-3xl font-bold">رؤاي</h1>
+        <h1 className="text-3xl font-bold">
+          {role === "interpreter"
+            ? "المُعيَّنة لي"
+            : role === "admin" || role === "super_admin"
+              ? "تعيين الرؤى"
+              : "رؤاي"}
+        </h1>
         <p className="mt-2 text-sm text-white/80">
-          سجل جميع الرؤى التي تود تفسيرها واحتفظ بسجل كامل لها.
+          {role === "interpreter"
+            ? "الرؤى المُكلَّفة إليك لتفسيرها."
+            : role === "admin" || role === "super_admin"
+              ? "جميع الرؤى لتعيينها للمفسرين."
+              : "سجل جميع الرؤى التي تود تفسيرها واحتفظ بسجل كامل لها."}
         </p>
       </header>
 
       <main className="mx-auto mt-6 flex w-full max-w-3xl flex-col gap-6 px-4">
-        <section className="rounded-3xl border border-sky-100 bg-white/95 p-5 shadow-lg backdrop-blur">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                أرسل رؤيا جديدة
-              </h2>
-              <p className="text-sm text-slate-500">
-                استعن بمفسرينا المعتمدين لتفسير رؤاك بدقة وسرية تامة.
-              </p>
+        {role === "dreamer" && (
+          <section className="rounded-3xl border border-sky-100 bg-white/95 p-5 shadow-lg backdrop-blur">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  أرسل رؤيا جديدة
+                </h2>
+                <p className="text-sm text-slate-500">
+                  استعن بمفسرينا المعتمدين لتفسير رؤاك بدقة وسرية تامة.
+                </p>
+              </div>
+              <Link href="/dreams/new" className="w-full md:w-auto">
+                <Button className="w-full rounded-full bg-gradient-to-r from-sky-500 via-sky-400 to-amber-300 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-xl">
+                  شارك رؤيا جديدة
+                </Button>
+              </Link>
             </div>
-            <Link href="/dreams/new" className="w-full md:w-auto">
-              <Button className="w-full rounded-full bg-gradient-to-r from-sky-500 via-sky-400 to-amber-300 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-xl">
-                شارك رؤيا جديدة
-              </Button>
-            </Link>
-          </div>
-        </section>
+          </section>
+        )}
 
-        {dreams.length === 0 ? (
+        {filteredDreams.length === 0 ? (
           <Card className="flex flex-col items-center gap-4 rounded-3xl border border-sky-100 bg-white/95 p-8 text-center shadow-md">
-            <p className="text-slate-600">لم تشارك أي رؤى بعد.</p>
-            <Link href="/dreams/new">
-              <Button className="rounded-full bg-gradient-to-r from-sky-500 to-amber-300 px-6 py-3 font-semibold text-white shadow-md">
-                شارك رؤيتك الآن
-              </Button>
-            </Link>
+            <p className="text-slate-600">
+              {statusFilter
+                ? "لا توجد رؤى في هذه الفئة."
+                : role === "interpreter"
+                  ? "لا توجد رؤى مُعيَّنة لك حالياً."
+                  : role === "admin" || role === "super_admin"
+                    ? "لا توجد رؤى لتعيينها حالياً."
+                    : "لم تشارك أي رؤى بعد."}
+            </p>
+            {role === "dreamer" && (
+              <Link href="/dreams/new">
+                <Button className="rounded-full bg-gradient-to-r from-sky-500 to-amber-300 px-6 py-3 font-semibold text-white shadow-md">
+                  شارك رؤيتك الآن
+                </Button>
+              </Link>
+            )}
           </Card>
         ) : (
           <div className="space-y-3">
-            {dreams.map((dream) => {
+            {statusFilter && (
+              <p className="text-sm text-slate-500 text-center">
+                عرض الرؤى:{" "}
+                {statusFilter === "new" && "جديدة"}
+                {statusFilter === "pending_payment" && "بانتظار الدفع"}
+                {statusFilter === "pending_inquiry" && "قيد الاستفسار"}
+                {statusFilter === "pending_interpretation" && "قيد التفسير"}
+                {statusFilter === "interpreted" && "تم التفسير"}
+                {statusFilter === "returned" && "مرجعة"}
+                {" — "}
+                <Link href="/dreams" className="text-sky-600 underline">
+                  عرض الكل
+                </Link>
+              </p>
+            )}
+            {filteredDreams.map((dream) => {
               const statusInfo = getStatusBadge(dream.status);
               const isUnpaid = dream.status === "pending_payment";
 

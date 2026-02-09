@@ -5,9 +5,31 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { getCurrentUser } from "@/lib/api-client"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { DashboardHeader } from "@/components/dashboard-header"
-import { Check } from "lucide-react"
+import { Check, MapPin } from "lucide-react"
 import { buildApiUrl } from "@/lib/api-client"
 import { PageLoader } from "@/components/ui/preloader"
+
+const PLANS_COUNTRY_KEY = "plans_country"
+
+const COUNTRY_OPTIONS: { code: string; label: string }[] = [
+  { code: "EG", label: "مصر" },
+  { code: "SA", label: "السعودية" },
+  { code: "AE", label: "الإمارات" },
+  { code: "KW", label: "الكويت" },
+  { code: "QA", label: "قطر" },
+  { code: "BH", label: "البحرين" },
+  { code: "OM", label: "عُمان" },
+  { code: "JO", label: "الأردن" },
+  { code: "LB", label: "لبنان" },
+  { code: "SY", label: "سوريا" },
+  { code: "IQ", label: "العراق" },
+  { code: "YE", label: "اليمن" },
+  { code: "PS", label: "فلسطين" },
+  { code: "MA", label: "المغرب" },
+  { code: "DZ", label: "الجزائر" },
+  { code: "TN", label: "تونس" },
+  { code: "OTHER", label: "دولة أخرى (عرض كل الخطط)" },
+]
 
 interface Plan {
   id: string
@@ -20,49 +42,110 @@ interface Plan {
   isActive: boolean
 }
 
+async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=ar`
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    return data?.countryCode ?? null
+  } catch {
+    return null
+  }
+}
+
 export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  const [locationStatus, setLocationStatus] = useState<"idle" | "asking" | "denied" | "ready">("idle")
+  const [country, setCountry] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null
+    return sessionStorage.getItem(PLANS_COUNTRY_KEY)
+  })
   const router = useRouter()
   const searchParams = useSearchParams()
-  const letterCount = searchParams.get('letterCount') ? parseInt(searchParams.get('letterCount') || '0', 10) : null
-  const dreamId = searchParams.get('dreamId')
+  const letterCount = searchParams.get("letterCount") ? parseInt(searchParams.get("letterCount") || "0", 10) : null
+  const dreamId = searchParams.get("dreamId")
 
   useEffect(() => {
+    let cancelled = false
+
+    const run = async () => {
+      const currentUser = await getCurrentUser()
+      if (!currentUser) {
+        router.push("/auth/login")
+        return
+      }
+      if (cancelled) return
+      setUserId(currentUser.user.id)
+
+      const savedCountry = sessionStorage.getItem(PLANS_COUNTRY_KEY)
+      if (savedCountry) {
+        setCountry(savedCountry)
+        setLocationStatus("ready")
+        return
+      }
+
+      if (!navigator.geolocation) {
+        setLocationStatus("denied")
+        setLoading(false)
+        return
+      }
+
+      setLocationStatus("asking")
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          if (cancelled) return
+          const code = await reverseGeocode(position.coords.latitude, position.coords.longitude)
+          if (cancelled) return
+          if (code) {
+            sessionStorage.setItem(PLANS_COUNTRY_KEY, code)
+            setCountry(code)
+            setLocationStatus("ready")
+          } else {
+            setLocationStatus("denied")
+            setLoading(false)
+          }
+        },
+        () => {
+          if (!cancelled) {
+            setLocationStatus("denied")
+            setLoading(false)
+          }
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+      )
+    }
+
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [router])
+
+  useEffect(() => {
+    if (!userId || !country) return
+
     const fetchPlans = async () => {
+      setLoading(true)
       try {
-        console.log('[Plans] Checking authentication...')
-        
-        const currentUser = await getCurrentUser()
-        
-        if (!currentUser) {
-          console.log('[Plans] No user found, redirecting to login')
-          router.push("/auth/login")
-          return
-        }
-        
-        setUserId(currentUser.user.id)
-        console.log('[Plans] User authenticated, fetching plans...')
-
-        const response = await fetch(buildApiUrl('/plans'), {
-          credentials: 'include',
-        })
-
+        const url = country === "OTHER" ? buildApiUrl("/plans") : buildApiUrl(`/plans?country=${encodeURIComponent(country)}`)
+        const response = await fetch(url, { credentials: "include" })
         if (response.ok) {
           const data = await response.json()
           setPlans(data.plans || [])
-          console.log('[Plans] Loaded', data.plans.length, 'plans')
         }
       } catch (error) {
-        console.error('[Plans] Error fetching plans:', error)
+        console.error("[Plans] Error fetching plans:", error)
       } finally {
         setLoading(false)
       }
     }
 
     fetchPlans()
-  }, [router])
+  }, [userId, country])
 
   const handleSelectPlan = async (planId: string) => {
     try {
@@ -117,6 +200,64 @@ export default function PlansPage() {
       console.error('[Plans] Error selecting plan:', error)
       alert('حدث خطأ أثناء معالجة الطلب')
     }
+  }
+
+  const showLocationGate = !country && (locationStatus === "asking" || locationStatus === "denied")
+  const waitingForLocation = !country && locationStatus === "asking"
+
+  const handleCountrySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value
+    if (!value) return
+    sessionStorage.setItem(PLANS_COUNTRY_KEY, value)
+    setCountry(value)
+    setLoading(true)
+  }
+
+  if (showLocationGate) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
+        <DashboardHeader />
+        <main className="mx-auto mt-12 max-w-md px-4 text-center">
+          <div className="rounded-3xl border border-sky-100 bg-white/95 p-8 shadow-lg">
+            <div className="mb-6 flex justify-center">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-100 text-sky-600">
+                <MapPin className="h-8 w-8" />
+              </span>
+            </div>
+            <h1 className="mb-2 text-xl font-bold text-slate-900">
+              {waitingForLocation ? "جاري تحديد موقعك" : "الرجاء تحديد موقعك"}
+            </h1>
+            <p className="mb-6 text-sm text-slate-600">
+              {waitingForLocation
+                ? "نحتاج موقعك لعرض الخطط المتاحة في بلدك."
+                : "اسمح بالموقع أو اختر بلدك لعرض الخطط المناسبة."}
+            </p>
+            {locationStatus === "denied" && (
+              <select
+                onChange={handleCountrySelect}
+                className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-right text-slate-800 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                defaultValue=""
+              >
+                <option value="" disabled>
+                  اختر البلد
+                </option>
+                {COUNTRY_OPTIONS.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            {waitingForLocation && (
+              <div className="flex justify-center py-4">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-300 border-t-sky-600" />
+              </div>
+            )}
+          </div>
+        </main>
+        <BottomNavigation />
+      </div>
+    )
   }
 
   if (loading) {

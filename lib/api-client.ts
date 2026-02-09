@@ -5,6 +5,22 @@
 
 const API_BASE_URL = "/api";
   // process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
+
+/**
+ * Backend origin for WebSocket (Socket.io). Set NEXT_PUBLIC_SOCKET_URL in production
+ * to your backend URL (e.g. https://api.example.com). Defaults to http://localhost:5000 for dev.
+ */
+export function getSocketServerUrl(): string {
+  if (process.env.NEXT_PUBLIC_SOCKET_URL) {
+    return process.env.NEXT_PUBLIC_SOCKET_URL;
+  }
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (apiUrl && (apiUrl.startsWith("http://") || apiUrl.startsWith("https://"))) {
+    return apiUrl.replace(/\/api\/?$/, "") || apiUrl;
+  }
+  return "http://localhost:5000";
+}
+
 // ============================================
 // TypeScript Interfaces
 // ============================================
@@ -83,7 +99,7 @@ export interface ApiRequestOptions extends RequestInit {
 /**
  * Get auth token from cookies (for client-side use)
  */
-function getAuthTokenFromCookie(): string | null {
+export function getAuthTokenFromCookie(): string | null {
   if (typeof document === 'undefined') return null;
   
   const cookies = document.cookie.split(';');

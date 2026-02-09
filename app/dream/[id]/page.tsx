@@ -8,9 +8,21 @@ import { DreamContentCard } from "@/components/dream-content-card";
 import { ChatMessage } from "@/components/chat-message";
 import { ChatInput } from "@/components/chat-input";
 import { Button } from "@/components/ui/button";
-import { getCurrentUser } from "@/lib/api-client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  getCurrentUser,
+  buildApiUrl,
+  getAuthTokenFromCookie,
+  getSocketServerUrl,
+} from "@/lib/api-client";
 import { PageLoader } from "@/components/ui/preloader";
-import { buildApiUrl } from "@/lib/api-client";
+import { io, Socket } from "socket.io-client";
 
 interface Message {
   id: string;
@@ -33,13 +45,24 @@ interface Dream {
   content: string;
   status: string;
   dreamerId: string;
-  interpreterId: string;
+  interpreterId: string | null;
   createdAt: string;
   dreamer?: {
     id: string;
     fullName: string;
   };
+  interpreter?: {
+    id: string;
+    fullName: string;
+  } | null;
   interpreterRating?: { rating: number } | null;
+}
+
+interface InterpreterOption {
+  id: string;
+  fullName: string | null;
+  email: string;
+  isAvailable: boolean;
 }
 
 export default function DreamDetailPage({
@@ -59,6 +82,11 @@ export default function DreamDetailPage({
   const [visionReopenedForChat, setVisionReopenedForChat] = useState(false);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [requestIdForChat, setRequestIdForChat] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [interpreters, setInterpreters] = useState<InterpreterOption[]>([]);
+  const [selectedInterpreterId, setSelectedInterpreterId] = useState<string>("");
+  const [assignSubmitting, setAssignSubmitting] = useState(false);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -79,10 +107,25 @@ export default function DreamDetailPage({
         }
 
         setCurrentUserId(currentUser.user.id);
+        setUserRole(currentUser.profile?.role ?? null);
         console.log(
           "[Dream Detail] User authenticated:",
           currentUser.profile.email,
         );
+
+        const isAdmin =
+          currentUser.profile?.role === "admin" ||
+          currentUser.profile?.role === "super_admin";
+        if (isAdmin) {
+          const interpretersRes = await fetch(
+            buildApiUrl("/admin/interpreters"),
+            { credentials: "include" },
+          );
+          if (interpretersRes.ok) {
+            const { interpreters: list } = await interpretersRes.json();
+            setInterpreters(list ?? []);
+          }
+        }
 
         // Fetch dream
         const dreamResponse = await fetch(
@@ -106,6 +149,11 @@ export default function DreamDetailPage({
         const dreamData = await dreamResponse.json();
         console.log("[Dream Detail] Dream loaded:", dreamData.title);
         setDream(dreamData);
+        if (dreamData.interpreterId) {
+          setSelectedInterpreterId(dreamData.interpreterId);
+        } else {
+          setSelectedInterpreterId("");
+        }
 
         let requestId: string | null = null;
         if (dreamData.interpreterId) {
@@ -124,24 +172,14 @@ export default function DreamDetailPage({
           }
         }
 
-        if (requestId) {
-          const chatRes = await fetch(
-            buildApiUrl(`/chat?request_id=${requestId}`),
-            { credentials: "include" },
-          );
-          if (chatRes.ok) {
-            const chatData = await chatRes.json();
-            setMessages(Array.isArray(chatData) ? chatData : []);
-          }
-        } else {
-          const messagesResponse = await fetch(
-            buildApiUrl(`/messages?dream_id=${unwrappedParams.id}`),
-            { credentials: "include" },
-          );
-          if (messagesResponse.ok) {
-            const messagesData = await messagesResponse.json();
-            setMessages(messagesData || []);
-          }
+        // Always load messages by dream_id so they persist (same source as POST /messages)
+        const messagesResponse = await fetch(
+          buildApiUrl(`/messages?dream_id=${unwrappedParams.id}`),
+          { credentials: "include" },
+        );
+        if (messagesResponse.ok) {
+          const messagesData = await messagesResponse.json();
+          setMessages(messagesData || []);
         }
       } catch (error) {
         console.error("[Dream Detail] Error fetching data:", error);
@@ -153,6 +191,39 @@ export default function DreamDetailPage({
 
     fetchData();
   }, [unwrappedParams.id, router]);
+
+  // WebSocket: connect and join dream room for real-time messages
+  useEffect(() => {
+    if (!dream?.id || !dream.interpreterId) return;
+    const token = getAuthTokenFromCookie();
+    const socketUrl = getSocketServerUrl();
+    if (!socketUrl || !token) return;
+
+    const s = io(socketUrl, {
+      path: "/socket.io",
+      withCredentials: true,
+      auth: { token },
+      transports: ["websocket", "polling"],
+    });
+
+    s.on("connect", () => {
+      s.emit("join_dream", { dreamId: dream.id });
+    });
+
+    s.on("message:new", (newMessage: Message) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === newMessage.id)) return prev;
+        return [...prev, newMessage];
+      });
+    });
+
+    setSocket(s);
+    return () => {
+      s.emit("leave_dream", { dreamId: dream.id });
+      s.disconnect();
+      setSocket(null);
+    };
+  }, [dream?.id, dream?.interpreterId]);
 
   const handleSendMessage = async (messageText: string) => {
     if (!dream || !currentUserId) return;
@@ -249,6 +320,27 @@ export default function DreamDetailPage({
     }
   };
 
+  const handleAssignInterpreter = async () => {
+    if (!dream || !selectedInterpreterId) return;
+    setAssignSubmitting(true);
+    try {
+      const response = await fetch(buildApiUrl(`/dreams/${dream.id}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ interpreter_id: selectedInterpreterId }),
+      });
+      if (response.ok) {
+        const updatedDream = await response.json();
+        setDream(updatedDream);
+      }
+    } catch (error) {
+      console.error("Error assigning interpreter:", error);
+    } finally {
+      setAssignSubmitting(false);
+    }
+  };
+
   if (loading) {
     return <PageLoader message="جاري تحميل تفاصيل الرؤية..." />;
   }
@@ -263,9 +355,59 @@ export default function DreamDetailPage({
     );
   }
 
+  const isAssigningAdmin =
+    userRole === "admin" || userRole === "super_admin";
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
       <DreamHeader dreamId={unwrappedParams.id} />
+
+      {isAssigningAdmin && (
+        <div className="mx-auto mt-4 w-full max-w-3xl px-4">
+          <div className="rounded-3xl border border-sky-200 bg-white/95 p-4 shadow-md backdrop-blur">
+            <h3 className="text-sm font-bold text-slate-800 mb-3">
+              تعيين المفسر
+            </h3>
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+              <Select
+                value={selectedInterpreterId || undefined}
+                onValueChange={(value) => setSelectedInterpreterId(value)}
+              >
+                <SelectTrigger className="flex-1 min-w-0 border-sky-200">
+                  <SelectValue placeholder="اختر المفسر" />
+                </SelectTrigger>
+                <SelectContent>
+                  {interpreters.map((interpreter) => (
+                    <SelectItem
+                      key={interpreter.id}
+                      value={interpreter.id}
+                    >
+                      {interpreter.fullName || interpreter.email}
+                      {interpreter.isAvailable && (
+                        <span className="text-emerald-600 text-xs mr-1">
+                          (متاح)
+                        </span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={handleAssignInterpreter}
+                disabled={!selectedInterpreterId || assignSubmitting}
+                className="rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:shadow-lg transition shrink-0"
+              >
+                {assignSubmitting ? "جاري التعيين..." : "تعيين"}
+              </Button>
+            </div>
+            {dream.interpreter && (
+              <p className="text-xs text-slate-500 mt-2">
+                المفسر الحالي: {dream.interpreter.fullName || dream.interpreter.id}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <DreamContentCard
         content={dream.content}
@@ -452,7 +594,7 @@ export default function DreamDetailPage({
       </div>
 
       {/* Floating action button - only show if interpreter assigned */}
-      {dream.interpreterId && (
+      {dream.interpreterId && userRole !== "interpreter" && (
         <button
           onClick={() => setShowActionsPanel(true)}
           className="fixed left-4 bottom-32 z-30 flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-4 py-3 text-white shadow-lg transition hover:shadow-xl hover:-translate-y-1"

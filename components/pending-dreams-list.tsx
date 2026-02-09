@@ -4,14 +4,14 @@ import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { buildApiUrl } from "@/lib/api-client"
+import { buildApiUrl, getCurrentUser } from "@/lib/api-client"
 
 interface Dream {
   id: string
   title: string
   status: string
-  created_at: string
-  dreamer_id: string
+  createdAt?: string
+  created_at?: string
 }
 
 export function PendingDreamsList() {
@@ -21,13 +21,20 @@ export function PendingDreamsList() {
   useEffect(() => {
     const fetchDreams = async () => {
       try {
-        const response = await fetch(buildApiUrl("/dreams"), {
-          credentials: 'include',
+        const currentUser = await getCurrentUser()
+        const userRole = currentUser?.profile?.role ?? "dreamer"
+        const endpoint =
+          userRole === "interpreter" ? "/dreams/assigned" : "/dreams/my-dreams"
+
+        const response = await fetch(buildApiUrl(endpoint), {
+          credentials: "include",
         })
         if (response.ok) {
           const data = await response.json()
-          // Filter for pending dreams
-          const pending = data.filter((d: Dream) => d.status === "new" || d.status === "pending_inquiry")
+          const pending = data.filter(
+            (d: Dream) =>
+              d.status === "new" || d.status === "pending_inquiry"
+          )
           setDreams(pending.slice(0, 5))
         }
       } catch (error) {
@@ -68,7 +75,7 @@ export function PendingDreamsList() {
                 <div className="flex-1">
                   <h3 className="text-base font-semibold text-slate-900">{dream.title}</h3>
                   <p className="mt-1 text-xs text-slate-500">
-                    {new Date(dream.created_at).toLocaleDateString("ar-SA", { month: "long", day: "numeric", year: "numeric" })}
+                    {new Date(dream.createdAt ?? dream.created_at ?? "").toLocaleDateString("ar-SA", { month: "long", day: "numeric", year: "numeric" })}
                   </p>
                 </div>
                 <Badge variant="outline" className={`${status.className} border-none rounded-full px-3 py-1 text-xs font-semibold`}>

@@ -134,9 +134,16 @@ export default function DashboardPage() {
         )}
 
         <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900">إحصائياتي</h2>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">إحصائياتي</h2>
+            {profile.role === "interpreter" && (
+              <p className="mt-0.5 text-xs text-slate-500">
+                الرؤى المُعيَّنة لك فقط
+              </p>
+            )}
+          </div>
           <div className="rounded-3xl border border-sky-100 bg-white/95 p-4 shadow-lg backdrop-blur">
-            <DashboardStats />
+            <DashboardStats role={profile.role} />
           </div>
         </section>
 

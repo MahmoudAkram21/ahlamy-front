@@ -1,10 +1,12 @@
 "use client"
 
 import type React from "react"
+import { useEffect, useState } from "react"
 
-import { Home, LayoutDashboard, Moon, Sparkles, User } from "lucide-react"
+import { Home, LayoutDashboard, Moon, ClipboardList, ClipboardCheck, Sparkles, User } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { getCurrentUser } from "@/lib/api-client"
 
 interface NavItem {
   href: string
@@ -15,10 +17,32 @@ interface NavItem {
 
 export function BottomNavigation() {
   const pathname = usePathname()
+  const [role, setRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    getCurrentUser()
+      .then((user) => setRole(user?.profile?.role ?? null))
+      .catch(() => setRole(null))
+  }, [])
+
+  const isInterpreter = role === "interpreter"
+  const isAssigningAdmin = role === "admin"
+  const dreamsLabel = isInterpreter
+    ? "المُعيَّنة لي"
+    : isAssigningAdmin
+      ? "تعيين الرؤى"
+      : "رؤاي"
+  const dreamsIcon = isInterpreter ? (
+    <ClipboardList size={22} />
+  ) : isAssigningAdmin ? (
+    <ClipboardCheck size={22} />
+  ) : (
+    <Moon size={22} />
+  )
 
   const navItems: NavItem[] = [
     { href: "/", label: "الرئيسية", icon: <Home size={22} /> },
-    { href: "/dreams", label: "رؤاي", icon: <Moon size={22} /> },
+    { href: "/dreams", label: dreamsLabel, icon: dreamsIcon },
     { href: "/dashboard", label: "غرفه التحكم", icon: <LayoutDashboard size={22} /> },
     { href: "/good-news", label: "إشراقات", icon: <Sparkles size={22} /> },
     { href: "/account", label: "حسابي", icon: <User size={22} /> },
