@@ -92,15 +92,13 @@ export default function AdminContentPage() {
                         <p className="text-sm text-slate-600">تحرير محتوى الصفحات الثابتة للمنصة</p>
                     </div>
 
-                    {pages.length === 0 && (
-                        <Button
-                            onClick={handleSeedPages}
-                            disabled={seeding}
-                            className="rounded-full bg-gradient-to-r from-emerald-500 to-green-500 px-6 py-2 text-white"
-                        >
-                            {seeding ? "جاري الإنشاء..." : "إنشاء الصفحات الافتراضية"}
-                        </Button>
-                    )}
+                    <Button
+                        onClick={handleSeedPages}
+                        disabled={seeding}
+                        className="rounded-full bg-gradient-to-r from-emerald-500 to-green-500 px-6 py-2 text-white"
+                    >
+                        {seeding ? "جاري الإنشاء..." : "إضافة الصفحات الناقصة"}
+                    </Button>
                 </div>
 
                 {pages.length === 0 ? (

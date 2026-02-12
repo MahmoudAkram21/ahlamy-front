@@ -1,19 +1,29 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import { Bell, Menu, Sun } from "lucide-react"
 
 import { NotificationsDropdown } from "./notifications-dropdown"
 import { ProfileDropdown } from "./profile-dropdown"
 import { SideMenu } from "./side-menu"
-import { getCurrentUser, type Profile } from "@/lib/api-client"
+import { apiFetch, getCurrentUser, type Profile } from "@/lib/api-client"
 
 export function DashboardHeader() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const data = await apiFetch<{ unreadCount: number }>("/notifications/unread-count")
+      setUnreadCount(data.unreadCount ?? 0)
+    } catch {
+      setUnreadCount(0)
+    }
+  }, [])
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -29,6 +39,15 @@ export function DashboardHeader() {
 
     loadProfile()
   }, [])
+
+  useEffect(() => {
+    fetchUnreadCount()
+  }, [fetchUnreadCount])
+
+  const handleNotificationsClose = useCallback(() => {
+    setNotificationsOpen(false)
+    fetchUnreadCount()
+  }, [fetchUnreadCount])
 
   const initials = useMemo(() => profile?.fullName?.charAt(0) ?? "أ", [profile?.fullName])
 
@@ -49,10 +68,14 @@ export function DashboardHeader() {
               <button
                 onClick={() => setNotificationsOpen((prev) => !prev)}
                 className="relative rounded-full bg-white/10 p-2 transition hover:bg-white/20"
-                aria-label="الإشعارات"
+                aria-label={unreadCount > 0 ? `الإشعارات (${unreadCount} غير مقروءة)` : "الإشعارات"}
               >
                 <Bell size={22} className="text-white" />
-                <span className="absolute -top-1 -right-1 h-2 w-2 animate-ping rounded-full bg-amber-300" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-bold text-slate-900">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </button>
             </div>
 
@@ -89,7 +112,7 @@ export function DashboardHeader() {
           </div>
         </div>
 
-        {notificationsOpen && <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />}
+        {notificationsOpen && <NotificationsDropdown onClose={handleNotificationsClose} />}
         {profileOpen && <ProfileDropdown onClose={() => setProfileOpen(false)} />}
       </header>
 

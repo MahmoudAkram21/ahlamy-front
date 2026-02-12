@@ -1,14 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { Bell } from "lucide-react"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { InterpreterStatusCard } from "@/components/interpreter-status-card"
 import { DashboardStats } from "@/components/dashboard-stats"
+import { SuperAdminStats } from "@/components/super-admin-stats"
 import { PendingDreamsList } from "@/components/pending-dreams-list"
 import { Button } from "@/components/ui/button"
-import { getCurrentUser } from "@/lib/api-client"
+import { apiFetch, getCurrentUser } from "@/lib/api-client"
 import { PageLoader } from "@/components/ui/preloader"
 import { buildApiUrl } from "@/lib/api-client"
 
@@ -31,14 +33,26 @@ interface Profile {
 export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
   const router = useRouter()
+
+  const fetchNotificationUnreadCount = useCallback(async () => {
+    try {
+      const data = await apiFetch<{ unreadCount: number }>("/notifications/unread-count")
+      setNotificationUnreadCount(data.unreadCount ?? 0)
+    } catch {
+      setNotificationUnreadCount(0)
+    }
+  }, [])
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const currentUser = await getCurrentUser()
+        if (!currentUser) { 
+          //clear all auth cookies to ensure clean state
+          
 
-        if (!currentUser) {
           console.log('[Dashboard] No user found, redirecting to login')
           router.push('/auth/login')
           return
@@ -56,6 +70,12 @@ export default function DashboardPage() {
 
     fetchProfile()
   }, [router])
+
+  useEffect(() => {
+    if (profile?.role === "dreamer") {
+      fetchNotificationUnreadCount()
+    }
+  }, [profile?.role, fetchNotificationUnreadCount])
 
   const handleToggleAvailability = async () => {
     try {
@@ -104,6 +124,25 @@ export default function DashboardPage() {
       <DashboardHeader />
 
       <main className="mx-auto mt-6 flex w-full max-w-4xl flex-col gap-6 px-4">
+        {/* Dreamer: show banner when they have unread notifications */}
+        {profile.role === "dreamer" && notificationUnreadCount > 0 && (
+          <section className="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
+                  <Bell className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    لديك {notificationUnreadCount} إشعار{notificationUnreadCount === 1 ? "" : "ات"} جديد{notificationUnreadCount === 1 ? "" : "ة"}
+                  </p>
+                  <p className="text-xs text-slate-500">اضغط على أيقونة الجرس أعلاه لعرضها</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Only show interpreter status card if user is an interpreter */}
         {profile.role === 'interpreter' && (
           <InterpreterStatusCard
@@ -135,7 +174,9 @@ export default function DashboardPage() {
 
         <section className="space-y-3">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">إحصائياتي</h2>
+            <h2 className="text-lg font-bold text-slate-900">
+              {profile.role === "super_admin" ? "إحصائيات النظام" : "إحصائياتي"}
+            </h2>
             {profile.role === "interpreter" && (
               <p className="mt-0.5 text-xs text-slate-500">
                 الرؤى المُعيَّنة لك فقط
@@ -143,7 +184,11 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="rounded-3xl border border-sky-100 bg-white/95 p-4 shadow-lg backdrop-blur">
-            <DashboardStats role={profile.role} />
+            {profile.role === "super_admin" ? (
+              <SuperAdminStats />
+            ) : (
+              <DashboardStats role={profile.role} />
+            )}
           </div>
         </section>
 

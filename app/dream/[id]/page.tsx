@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useRef, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { DreamHeader } from "@/components/dream-header";
@@ -37,6 +37,13 @@ interface Message {
     fullName?: string;
     displayName?: string;
   };
+}
+
+interface DreamComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  user?: { id: string; fullName: string | null };
 }
 
 interface Dream {
@@ -78,16 +85,34 @@ export default function DreamDetailPage({
   const [showActionsPanel, setShowActionsPanel] = useState(false);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [showReturnForReassignConfirm, setShowReturnForReassignConfirm] = useState(false);
+  const [returnForReassignSubmitting, setReturnForReassignSubmitting] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
-  const [visionReopenedForChat, setVisionReopenedForChat] = useState(false);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [reopenSubmitting, setReopenSubmitting] = useState(false);
   const [requestIdForChat, setRequestIdForChat] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [interpreters, setInterpreters] = useState<InterpreterOption[]>([]);
   const [selectedInterpreterId, setSelectedInterpreterId] = useState<string>("");
   const [assignSubmitting, setAssignSubmitting] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [comments, setComments] = useState<DreamComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  // Auto-scroll messages to bottom when new messages arrive or panel opens
+  useEffect(() => {
+    if (!messagesOpen || messages.length === 0) return;
+    const el = messagesScrollRef.current;
+    if (el) {
+      const t = setTimeout(() => {
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      }, 100);
+      return () => clearTimeout(t);
+    }
+  }, [messagesOpen, messages.length]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -217,6 +242,22 @@ export default function DreamDetailPage({
       });
     });
 
+    s.on("message:updated", (payload: Message) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === payload.id ? { ...m, content: payload.content, sender: payload.sender } : m
+        )
+      );
+    });
+
+    s.on("dream:updated", (data: { id: string; content?: string }) => {
+      setDream((prev) => {
+        if (!prev || data.id !== prev.id) return prev;
+        if (data.content !== undefined) return { ...prev, content: data.content };
+        return prev;
+      });
+    });
+
     setSocket(s);
     return () => {
       s.emit("leave_dream", { dreamId: dream.id });
@@ -224,6 +265,40 @@ export default function DreamDetailPage({
       setSocket(null);
     };
   }, [dream?.id, dream?.interpreterId]);
+
+  // Fetch comments for this dream
+  useEffect(() => {
+    if (!dream?.id) return;
+    const fetchComments = async () => {
+      try {
+        const res = await fetch(buildApiUrl(`/comments?dream_id=${dream.id}`), {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const list = await res.json();
+          setComments(Array.isArray(list) ? list : []);
+        }
+      } catch {
+        setComments([]);
+      }
+    };
+    fetchComments();
+  }, [dream?.id]);
+
+  const refetchDream = async () => {
+    if (!dream?.id) return;
+    try {
+      const res = await fetch(buildApiUrl(`/dreams/${dream.id}`), {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDream(data);
+      }
+    } catch (e) {
+      console.error("[Dream Detail] Refetch dream error:", e);
+    }
+  };
 
   const handleSendMessage = async (messageText: string) => {
     if (!dream || !currentUserId) return;
@@ -245,7 +320,12 @@ export default function DreamDetailPage({
       if (response.ok) {
         const newMessage = await response.json();
         console.log("[Dream Detail] Message sent");
-        setMessages([...messages, newMessage]);
+        setMessages((prev) =>
+          prev.some((m) => m.id === newMessage.id) ? prev : [...prev, newMessage]
+        );
+        if (messageText.trim() === "نعم") {
+          await refetchDream();
+        }
       } else {
         console.error("[Dream Detail] Failed to send message");
       }
@@ -260,21 +340,38 @@ export default function DreamDetailPage({
     setShowActionsPanel(false);
 
     try {
-      const response = await fetch(buildApiUrl(`/dreams/${dream.id}`), {
-        method: "PATCH",
+      const response = await fetch(buildApiUrl(`/dreams/${dream.id}/request-completion`), {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ status: "interpreted" }),
       });
 
       if (response.ok) {
-        const updatedDream = await response.json();
-        setDream(updatedDream);
+        // Backend sent a verification message to the dreamer; dream will become "interpreted" after 10min if dreamer does not reply
       }
     } catch (error) {
-      console.error("Error marking complete:", error);
+      console.error("Error requesting completion:", error);
     }
   };
+
+  const handleReopenDream = async () => {
+    if (!dream) return
+    setReopenSubmitting(true)
+    try {
+      const response = await fetch(buildApiUrl(`/dreams/${dream.id}/reopen`), {
+        method: "POST",
+        credentials: "include",
+      })
+      if (response.ok) {
+        const updatedDream = await response.json()
+        setDream(updatedDream)
+      }
+    } catch (error) {
+      console.error("Error reopening dream:", error)
+    } finally {
+      setReopenSubmitting(false)
+    }
+  }
 
   const handleReject = async () => {
     if (!dream) return;
@@ -295,6 +392,53 @@ export default function DreamDetailPage({
       }
     } catch (error) {
       console.error("Error rejecting dream:", error);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!dream?.id || !commentText.trim()) return;
+    setCommentSubmitting(true);
+    try {
+      const res = await fetch(buildApiUrl("/comments"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ dream_id: dream.id, content: commentText.trim() }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setComments((prev) => [created, ...prev]);
+        setCommentText("");
+      }
+    } catch (e) {
+      console.error("Error adding comment:", e);
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
+  /** Interpreter returns the dream so admin can reassign it to another interpreter. */
+  const handleReturnForReassign = async () => {
+    if (!dream) return;
+    setShowReturnForReassignConfirm(false);
+    setShowActionsPanel(false);
+    setReturnForReassignSubmitting(true);
+    try {
+      const response = await fetch(buildApiUrl(`/dreams/${dream.id}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: "returned" }),
+      });
+      if (response.ok) {
+        const updatedDream = await response.json();
+        setDream(updatedDream);
+        router.push("/dreams");
+      }
+    } catch (error) {
+      console.error("Error returning dream for reassignment:", error);
+    } finally {
+      setReturnForReassignSubmitting(false);
     }
   };
 
@@ -338,6 +482,40 @@ export default function DreamDetailPage({
       console.error("Error assigning interpreter:", error);
     } finally {
       setAssignSubmitting(false);
+    }
+  };
+
+  const EDIT_WINDOW_MS = 10 * 60 * 1000;
+
+  const handleEditDreamContent = async (newContent: string) => {
+    if (!dream) return;
+    const response = await fetch(buildApiUrl(`/dreams/${dream.id}`), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ content: newContent }),
+    });
+    if (response.ok) {
+      const updatedDream = await response.json();
+      setDream(updatedDream);
+    }
+  };
+
+  const handleEditMessage = async (messageId: string, newContent: string) => {
+    try {
+      const response = await fetch(buildApiUrl(`/messages/${messageId}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content: newContent }),
+      });
+      if (response.ok) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, content: newContent } : m))
+        );
+      }
+    } catch (error) {
+      console.error("Error editing message:", error);
     }
   };
 
@@ -411,8 +589,13 @@ export default function DreamDetailPage({
 
       <DreamContentCard
         content={dream.content}
-        dreamerName="الرائي" // Anonymous - no real name shown
+        dreamerName="الرائي"
         submittedAt={`تم الإرسال: ${new Date(dream.createdAt).toLocaleDateString("ar-SA")} الساعة ${new Date(dream.createdAt).toLocaleTimeString("ar-SA")}`}
+        canEdit={
+          dream.dreamerId === currentUserId &&
+          Date.now() - new Date(dream.createdAt).getTime() <= EDIT_WINDOW_MS
+        }
+        onSave={handleEditDreamContent}
       />
 
       <div className="flex-1 px-4">
@@ -436,36 +619,50 @@ export default function DreamDetailPage({
               </svg>
             </button>
             {messagesOpen && (
-              <div className="flex-1 overflow-y-auto max-h-[320px] p-4 pt-0 border-t border-sky-100">
+              <div
+                ref={messagesScrollRef}
+                className="flex-1 overflow-y-auto max-h-[320px] p-4 pt-0 border-t border-sky-100"
+              >
                 {messages.length === 0 ? (
                   <div className="py-8 text-center text-slate-500 text-sm">
                     لا توجد رسائل بعد
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {messages.map((message) => (
-                      <ChatMessage
-                        key={message.id}
-                        type={
-                          message.senderId === currentUserId
-                            ? "user"
-                            : "interpreter"
-                        }
-                        text={message.content}
-                        senderName={
-                          message.sender?.displayName ||
-                          (message.sender?.role === "dreamer" ? "الرائي" : "المفسر")
-                        }
-                      />
-                    ))}
+                    {messages.map((message) => {
+                      const canEditMessage =
+                        message.senderId === currentUserId &&
+                        Date.now() - new Date(message.createdAt).getTime() <= EDIT_WINDOW_MS;
+                      return (
+                        <ChatMessage
+                          key={message.id}
+                          type={
+                            message.senderId === currentUserId
+                              ? "user"
+                              : "interpreter"
+                          }
+                          text={message.content}
+                          senderName={
+                            message.sender?.displayName ||
+                            (message.sender?.role === "dreamer" ? "الرائي" : "المفسر")
+                          }
+                          messageId={message.id}
+                          createdAt={message.createdAt}
+                          isEditable={canEditMessage}
+                          onEdit={handleEditMessage}
+                          onQuickReply={handleSendMessage}
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Show payment required banner if unpaid */}
+          {/* Show payment required: only dreamer sees "pay now"; interpreter/admin see awaiting message */}
           {dream.status === "pending_payment" ? (
+            dream.dreamerId === currentUserId ? (
             <div className="rounded-3xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 p-8 shadow-lg text-center">
               <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
                 <svg
@@ -500,6 +697,12 @@ export default function DreamDetailPage({
                 اختر خطة وادفع الآن
               </Button>
             </div>
+            ) : (
+              <div className="rounded-3xl border-2 border-amber-200 bg-amber-50/80 p-6 shadow-md text-center">
+                <h3 className="text-lg font-bold text-amber-900">بانتظار دفع الرائي</h3>
+                <p className="mt-1 text-sm text-slate-600">ستتاح المحادثة بعد قيام الرائي باختيار باقة والدفع.</p>
+              </div>
+            )
           ) : !dream.interpreterId ? (
             <div className="rounded-3xl border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-6 shadow-md">
               <div className="flex items-start gap-3">
@@ -532,20 +735,18 @@ export default function DreamDetailPage({
             </div>
           ) : (
             <>
-              {/* تقييم المفسر — للرائي فقط بعد اكتمال التفسير */}
+              {/* تقييم المفسر — للرائي فقط بعد اكتمال التفسير (يمكن تعديل التقييم) */}
               {String(dream.status || "").toLowerCase() === "interpreted" &&
                 dream.dreamerId === currentUserId && (
                   <div className="rounded-3xl border border-sky-100 bg-white/95 p-4 shadow-md mb-4">
                     <p className="text-sm font-semibold text-slate-700 text-center mb-2">
                       قيّم المفسر
                     </p>
-                    {dream.interpreterRating ? (
-                      <p className="text-sm text-amber-600 text-center">
-                        شكراً، قيّمت المفسر بـ {dream.interpreterRating.rating} نجوم
-                      </p>
-                    ) : (
-                      <div className="flex justify-center gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
+                    <div className="flex justify-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        const currentRating = dream.interpreterRating?.rating ?? 0
+                        const isFilled = star <= currentRating
+                        return (
                           <button
                             key={star}
                             type="button"
@@ -555,34 +756,91 @@ export default function DreamDetailPage({
                             aria-label={`${star} نجوم`}
                           >
                             <svg
-                              className="h-8 w-8 text-amber-400 hover:text-amber-500"
+                              className={`h-8 w-8 transition-colors ${
+                                isFilled ? "text-amber-500" : "text-amber-200 hover:text-amber-400"
+                              }`}
                               fill="currentColor"
                               viewBox="0 0 24 24"
                             >
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                             </svg>
                           </button>
-                        ))}
+                        )
+                      })}
+                    </div>
+                    {dream.interpreterRating ? (
+                      <p className="text-sm text-amber-600 text-center mt-2">
+                        شكراً، قيّمت المفسر بـ {dream.interpreterRating.rating} نجوم. يمكنك النقر على النجوم لتغيير التقييم.
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+
+              {/* رأيك أو تعليقك — للرائي بعد اكتمال التفسير */}
+              {String(dream.status || "").toLowerCase() === "interpreted" &&
+                dream.dreamerId === currentUserId && (
+                  <div className="rounded-3xl border border-sky-100 bg-white/95 p-4 shadow-md mb-4">
+                    <h3 className="text-sm font-bold text-slate-800 mb-2">رأيك أو تعليقك</h3>
+                    <p className="text-xs text-slate-500 mb-3">
+                      شارك تجربتك أو رأيك عن التفسير (اختياري). قد يُعرض في قسم «اراء عملاء احلامي» في الصفحة الرئيسية.
+                    </p>
+                    <textarea
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="اكتب رأيك هنا..."
+                      rows={3}
+                      className="w-full rounded-xl border border-sky-100 bg-slate-50 px-3 py-2 text-sm text-right placeholder:text-slate-400 focus:border-sky-300 focus:ring-2 focus:ring-sky-200 outline-none"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleAddComment}
+                      disabled={commentSubmitting || !commentText.trim()}
+                      className="mt-2 w-full rounded-full bg-sky-500 text-white text-sm font-semibold disabled:opacity-50"
+                    >
+                      {commentSubmitting ? "جاري الإرسال..." : "إرسال الرأي"}
+                    </Button>
+                    {comments.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-sky-100">
+                        <p className="text-xs font-semibold text-slate-500 mb-2">التعليقات السابقة</p>
+                        <ul className="space-y-2">
+                          {comments.map((c) => (
+                            <li key={c.id} className="rounded-xl bg-slate-50 p-3 text-right">
+                              <p className="text-sm text-slate-700">{c.content}</p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                {c.user?.fullName ?? "رائي"} —{" "}
+                                {new Date(c.createdAt).toLocaleDateString("ar-SA", { dateStyle: "short" })}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </div>
                 )}
+
               {(() => {
                 const isInterpreted =
                   String(dream.status || "").toLowerCase() === "interpreted"
-                if (isInterpreted && !visionReopenedForChat) {
+                const isInterpreter =
+                  dream.interpreterId === currentUserId && userRole === "interpreter"
+                if (isInterpreted) {
                   return (
                     <div className="rounded-3xl border border-sky-100 bg-white/95 p-4 shadow-md">
                       <p className="text-sm text-slate-600 text-center mb-3">
-                        تم تفسير هذه الرؤيا. لكتابة رسالة جديدة يمكنك إعادة فتح الرؤية للمحادثة.
+                        {isInterpreter
+                          ? "تم إغلاق المحادثة بعد تأكيد الرائي. يمكنك فتح الرؤيا مرة أخرى للمحادثة إذا أردت."
+                          : "تم تفسير هذه الرؤيا وإغلاق المحادثة."}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => setVisionReopenedForChat(true)}
-                        className="w-full rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-4 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg transition"
-                      >
-                        إعادة فتح الرؤية للمحادثة
-                      </button>
+                      {isInterpreter && (
+                        <button
+                          type="button"
+                          onClick={handleReopenDream}
+                          disabled={reopenSubmitting}
+                          className="w-full rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-4 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg transition disabled:opacity-50"
+                        >
+                          {reopenSubmitting ? "جاري الفتح..." : "فتح الرؤيا مرة أخرى"}
+                        </button>
+                      )}
                     </div>
                   )
                 }
@@ -593,8 +851,8 @@ export default function DreamDetailPage({
         </div>
       </div>
 
-      {/* Floating action button - only show if interpreter assigned */}
-      {dream.interpreterId && userRole !== "interpreter" && (
+      {/* Floating action button - only show for the assigned interpreter */}
+      {dream.interpreterId && userRole === "interpreter" && dream.interpreterId === currentUserId && (
         <button
           onClick={() => setShowActionsPanel(true)}
           className="fixed left-4 bottom-32 z-30 flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-4 py-3 text-white shadow-lg transition hover:shadow-xl hover:-translate-y-1"
@@ -663,27 +921,50 @@ export default function DreamDetailPage({
                   if (!isInterpreted) {
                     if (isInterpreter) {
                       return (
-                        <button
-                          onClick={() => setShowCompleteConfirm(true)}
-                          className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-green-400 p-4 text-white shadow-md hover:shadow-lg transition hover:-translate-y-0.5"
-                        >
-                          <div className="flex items-center gap-3">
-                            <svg
-                              className="h-6 w-6"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                            <span className="font-semibold">تم التفسير</span>
-                          </div>
-                        </button>
+                        <div className="space-y-3">
+                          <button
+                            onClick={() => setShowCompleteConfirm(true)}
+                            className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-green-400 p-4 text-white shadow-md hover:shadow-lg transition hover:-translate-y-0.5"
+                          >
+                            <div className="flex items-center gap-3">
+                              <svg
+                                className="h-6 w-6"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                              <span className="font-semibold">تم التفسير</span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => setShowReturnForReassignConfirm(true)}
+                            className="w-full rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-amber-800 shadow-sm hover:bg-amber-100 transition hover:-translate-y-0.5"
+                          >
+                            <div className="flex items-center gap-3">
+                              <svg
+                                className="h-6 w-6"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                />
+                              </svg>
+                              <span className="font-semibold">إرجاع الرؤيا لإعادة التعيين</span>
+                            </div>
+                          </button>
+                        </div>
                       )
                     }
                     return (
@@ -747,7 +1028,7 @@ export default function DreamDetailPage({
                   تأكيد إتمام التفسير
                 </h3>
                 <p className="text-slate-600 mb-6">
-                  هل أنت متأكد من أنك قمت بتفسير هذه الرؤيا بالكامل؟
+                  سيتم إرسال طلب تأكيد للرائي. إذا لم يرد خلال 10 دقائق سيُعتبر التفسير مكتملاً تلقائياً.
                 </p>
                 <div className="flex gap-3">
                   <button
@@ -761,6 +1042,55 @@ export default function DreamDetailPage({
                     className="flex-1 rounded-full bg-gradient-to-r from-emerald-500 to-green-400 px-4 py-3 font-semibold text-white shadow-md hover:shadow-lg transition"
                   >
                     نعم، تم التفسير
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Interpreter: return dream for reassignment confirmation */}
+      {showReturnForReassignConfirm && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
+              <div className="text-center">
+                <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                  <svg
+                    className="h-8 w-8 text-amber-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  إرجاع الرؤيا لإعادة التعيين
+                </h3>
+                <p className="text-slate-600 mb-6">
+                  ستُزال الرؤيا من قائمتك وستظهر للمسؤول لتعيينها لمفسر آخر. هل أنت متأكد؟
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowReturnForReassignConfirm(false)}
+                    disabled={returnForReassignSubmitting}
+                    className="flex-1 rounded-full border-2 border-slate-200 px-4 py-3 font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    onClick={handleReturnForReassign}
+                    disabled={returnForReassignSubmitting}
+                    className="flex-1 rounded-full bg-amber-500 px-4 py-3 font-semibold text-white shadow-md hover:bg-amber-600 transition disabled:opacity-50"
+                  >
+                    {returnForReassignSubmitting ? "جاري الإرجاع..." : "نعم، إرجاع"}
                   </button>
                 </div>
               </div>

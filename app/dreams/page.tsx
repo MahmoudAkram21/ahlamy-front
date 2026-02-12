@@ -198,15 +198,16 @@ export default function DreamsPage() {
             {filteredDreams.map((dream) => {
               const statusInfo = getStatusBadge(dream.status);
               const isUnpaid = dream.status === "pending_payment";
+              // Only dreamers go to plans to pay; interpreters and admins always open dream detail
+              const href =
+                isUnpaid && role === "dreamer"
+                  ? `/plans?dreamId=${dream.id}&letterCount=${Array.from(dream.title + dream.content).length}`
+                  : `/dream/${dream.id}`;
 
               return (
                 <Link
                   key={dream.id}
-                  href={
-                    isUnpaid
-                      ? `/plans?dreamId=${dream.id}&letterCount=${Array.from(dream.title + dream.content).length}`
-                      : `/dream/${dream.id}`
-                  }
+                  href={href}
                 >
                   <Card
                     className={`group relative overflow-hidden rounded-3xl border ${isUnpaid ? "border-amber-200 bg-amber-50/30" : "border-sky-100 bg-white/95"} p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg`}

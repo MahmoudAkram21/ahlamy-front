@@ -43,6 +43,11 @@ export default function AdminInterpretersPage() {
   const [interpreters, setInterpreters] = useState<Interpreter[]>([])
   const [statsByType, setStatsByType] = useState<StatsByTypeItem[]>([])
   const [statsMonth, setStatsMonth] = useState<string>("")
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [statsMonthParam, setStatsMonthParam] = useState<string>(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+  })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -60,10 +65,18 @@ export default function AdminInterpretersPage() {
           return
         }
 
-        const [interpretersRes, statsRes] = await Promise.all([
-          fetch(buildApiUrl("/admin/interpreters"), { credentials: "include" }),
-          fetch(buildApiUrl("/admin/interpreters/stats-by-type"), { credentials: "include" }),
-        ])
+        setIsSuperAdmin(Boolean(current.profile.isSuperAdmin))
+
+        const urls: [string, RequestInit?][] = [
+          [buildApiUrl("/admin/interpreters"), { credentials: "include" }],
+        ]
+        if (current.profile.isSuperAdmin) {
+          urls.push([buildApiUrl(`/admin/interpreters/stats-by-type?month=${statsMonthParam}`), { credentials: "include" }])
+        }
+
+        const [interpretersRes, statsRes] = await Promise.all(
+          urls.map(([url, opts]) => fetch(url, opts))
+        ) as [Response, Response?]
 
         if (interpretersRes.status === 403) {
           router.push("/dashboard")
@@ -74,8 +87,8 @@ export default function AdminInterpretersPage() {
           const data = await interpretersRes.json()
           setInterpreters(data.interpreters || [])
         }
-        if (statsRes.ok) {
-          const statsData = await statsRes.json()
+        if (current.profile.isSuperAdmin && statsRes?.ok) {
+          const statsData = await (statsRes as Response).json()
           setStatsByType(statsData.stats || [])
           setStatsMonth(statsData.month || "")
         }
@@ -87,16 +100,16 @@ export default function AdminInterpretersPage() {
     }
 
     fetchInterpreters()
-  }, [router])
+  }, [router, statsMonthParam])
 
   const handleExport = async (format: string) => {
     try {
-      const url = `${buildApiUrl("/admin/interpreters/stats-by-type/export")}?format=${format}`
+      const url = `${buildApiUrl("/admin/interpreters/stats-by-type/export")}?format=${format}&month=${statsMonthParam}`
       const res = await fetch(url, { credentials: "include" })
       if (!res.ok) return
       const blob = await res.blob()
       const disposition = res.headers.get("Content-Disposition")
-      const filename = disposition?.match(/filename="?([^";]+)"?/)?.[1] || `vision-stats.${format === "pdf" ? "html" : format}`
+      const filename = disposition?.match(/filename="?([^";]+)"?/)?.[1] || `vision-stats.${format === "pdf" ? "pdf" : format}`
       const a = document.createElement("a")
       a.href = URL.createObjectURL(blob)
       a.download = filename
@@ -121,60 +134,71 @@ export default function AdminInterpretersPage() {
           <p className="mt-1 text-sm text-slate-500">عرض حالة المفسرين وإجمالي التفاسير والدرجة التقييمية الحالية.</p>
         </div>
 
-        <section className="mb-8 rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg backdrop-blur">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-slate-900 text-right">عداد الرؤى حسب النوع (الشهر الحالي)</h2>
-            {statsMonth && <span className="text-sm text-slate-500">{statsMonth}</span>}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full"
-                onClick={() => handleExport("txt")}
-              >
-                <FileText size={16} className="ml-1" />
-                تصدير ورقة
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full"
-                onClick={() => handleExport("pdf")}
-              >
-                <Download size={16} className="ml-1" />
-                تصدير PDF
-              </Button>
+        {isSuperAdmin && (
+          <section className="mb-8 rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg backdrop-blur">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-bold text-slate-900 text-right">عداد الرؤى حسب النوع</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-sm text-slate-600">الشهر:</label>
+                <input
+                  type="month"
+                  value={statsMonthParam}
+                  onChange={(e) => setStatsMonthParam(e.target.value)}
+                  className="rounded-lg border border-sky-200 bg-white px-3 py-1.5 text-sm text-slate-800"
+                />
+              </div>
+              {statsMonth && <span className="text-sm text-slate-500">{statsMonth}</span>}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => handleExport("txt")}
+                >
+                  <FileText size={16} className="ml-1" />
+                  تصدير ورقة
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => handleExport("pdf")}
+                >
+                  <Download size={16} className="ml-1" />
+                  تصدير PDF
+                </Button>
+              </div>
             </div>
-          </div>
-          {statsByType.length === 0 ? (
-            <p className="text-center text-sm text-slate-500 py-4">لا توجد إحصائيات لهذا الشهر.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-sm">
-                <thead>
-                  <tr className="border-b border-sky-100">
-                    <th className="py-2 px-2 font-semibold text-slate-700">المفسر</th>
-                    {Object.entries(VISION_TYPE_LABELS).map(([, label]) => (
-                      <th key={label} className="py-2 px-2 font-semibold text-slate-700">{label}</th>
-                    ))}
-                    <th className="py-2 px-2 font-semibold text-slate-700">الإجمالي</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {statsByType.map((row) => (
-                    <tr key={row.interpreterId} className="border-b border-sky-50">
-                      <td className="py-2 px-2">{row.fullName || row.email}</td>
-                      {Object.keys(VISION_TYPE_LABELS).map((key) => (
-                        <td key={key} className="py-2 px-2">{row.counts[key] ?? 0}</td>
+            {statsByType.length === 0 ? (
+              <p className="text-center text-sm text-slate-500 py-4">لا توجد إحصائيات لهذا الشهر.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-sm">
+                  <thead>
+                    <tr className="border-b border-sky-100">
+                      <th className="py-2 px-2 font-semibold text-slate-700">المفسر</th>
+                      {Object.entries(VISION_TYPE_LABELS).map(([, label]) => (
+                        <th key={label} className="py-2 px-2 font-semibold text-slate-700">{label}</th>
                       ))}
-                      <td className="py-2 px-2 font-semibold">{row.total}</td>
+                      <th className="py-2 px-2 font-semibold text-slate-700">الإجمالي</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+                  </thead>
+                  <tbody>
+                    {statsByType.map((row) => (
+                      <tr key={row.interpreterId} className="border-b border-sky-50">
+                        <td className="py-2 px-2">{row.fullName || row.email}</td>
+                        {Object.keys(VISION_TYPE_LABELS).map((key) => (
+                          <td key={key} className="py-2 px-2">{row.counts[key] ?? 0}</td>
+                        ))}
+                        <td className="py-2 px-2 font-semibold">{row.total}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
 
         {interpreters.length === 0 ? (
           <Card className="rounded-3xl border border-sky-100 bg-white/95 p-6 text-center text-slate-500 shadow-md">

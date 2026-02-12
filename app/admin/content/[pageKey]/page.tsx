@@ -9,6 +9,7 @@ import { BottomNavigation } from "@/components/bottom-navigation"
 import { Button } from "@/components/ui/button"
 import { PageLoader } from "@/components/ui/preloader"
 import { ArrowRight, Save, Eye } from "lucide-react"
+import { RichTextEditor } from "@/components/rich-text-editor"
 
 interface PageContent {
     id: string
@@ -157,17 +158,15 @@ export default function EditContentPage({ params }: { params: Promise<{ pageKey:
                     {/* Content */}
                     <div className="rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg">
                         <label className="mb-2 block text-sm font-semibold text-slate-700">
-                            محتوى الصفحة (HTML)
+                            محتوى الصفحة
                         </label>
-                        <textarea
+                        <RichTextEditor
                             value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            rows={20}
-                            className="w-full rounded-2xl border border-sky-100 bg-slate-50 px-4 py-3 font-mono text-sm outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
-                            placeholder="أدخل محتوى الصفحة بصيغة HTML"
+                            onChange={setContent}
+                            placeholder="اكتب محتوى الصفحة هنا..."
                         />
                         <p className="mt-2 text-xs text-slate-500">
-                            يمكنك استخدام HTML لتنسيق المحتوى (h1, h2, p, ul, li, etc.)
+                            استخدم شريط الأدوات للتنسيق: العناوين، التمييز، القوائم، الروابط
                         </p>
                     </div>
 

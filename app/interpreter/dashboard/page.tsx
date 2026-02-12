@@ -36,6 +36,10 @@ export default function InterpreterDashboard() {
   const [requests, setRequests] = useState<Request[]>([])
   const [stats, setStats] = useState<Stats>({ total: 0, completed: 0, pending: 0 })
   const [statsByType, setStatsByType] = useState<{ counts: Record<string, number>; total: number; month: string } | null>(null)
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -45,7 +49,7 @@ export default function InterpreterDashboard() {
       try {
         const [requestsRes, statsRes] = await Promise.all([
           fetch(buildApiUrl("/requests"), { method: "GET", credentials: "include" }),
-          fetch(buildApiUrl("/profile/interpretation-stats-by-type"), { credentials: "include" }),
+          fetch(buildApiUrl(`/profile/interpretation-stats-by-type?month=${selectedMonth}`), { credentials: "include" }),
         ])
 
         if (requestsRes.status === 401) {
@@ -82,16 +86,16 @@ export default function InterpreterDashboard() {
     }
 
     fetchData()
-  }, [router])
+  }, [router, selectedMonth])
 
   const handleExport = async (format: string) => {
     try {
-      const url = `${buildApiUrl("/profile/interpretation-stats-by-type/export")}?format=${format}`
+      const url = `${buildApiUrl("/profile/interpretation-stats-by-type/export")}?format=${format}&month=${selectedMonth}`
       const res = await fetch(url, { credentials: "include" })
       if (!res.ok) return
       const blob = await res.blob()
       const disposition = res.headers.get("Content-Disposition")
-      const filename = disposition?.match(/filename="?([^";]+)"?/)?.[1] || `vision-stats.${format}`
+      const filename = disposition?.match(/filename="?([^";]+)"?/)?.[1] || `vision-stats.${format === "pdf" ? "pdf" : format}`
       const a = document.createElement("a")
       a.href = URL.createObjectURL(blob)
       a.download = filename
@@ -151,12 +155,25 @@ export default function InterpreterDashboard() {
 
         <section className="rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg backdrop-blur">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-slate-900 text-right">عداد الرؤى حسب النوع (هذا الشهر)</h2>
+            <h2 className="text-lg font-bold text-slate-900 text-right">عداد الرؤى حسب النوع</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-sm text-slate-600">الشهر:</label>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="rounded-lg border border-sky-200 bg-white px-3 py-1.5 text-sm text-slate-800"
+              />
+            </div>
             {statsByType?.month && <span className="text-sm text-slate-500">{statsByType.month}</span>}
             <div className="flex gap-2">
               <Button variant="outline" size="sm" className="rounded-full" onClick={() => handleExport("txt")}>
                 <FileText size={16} className="ml-1" />
                 تصدير ورقة
+              </Button>
+              <Button variant="outline" size="sm" className="rounded-full" onClick={() => handleExport("pdf")}>
+                <Download size={16} className="ml-1" />
+                تصدير PDF
               </Button>
               <Button variant="outline" size="sm" className="rounded-full" onClick={() => handleExport("json")}>
                 <Download size={16} className="ml-1" />

@@ -38,6 +38,7 @@ export default function TermsPage() {
 
     loadPage()
   }, [])
+  console.log(page , "page ")
 
   if (loading) {
     return <PageLoader message="جاري التحميل..." />

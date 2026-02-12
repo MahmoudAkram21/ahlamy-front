@@ -96,20 +96,30 @@ export interface ApiRequestOptions extends RequestInit {
   authenticated?: boolean;
 }
 
+const AUTH_TOKEN_COOKIE_NAME = "auth_token";
+
 /**
  * Get auth token from cookies (for client-side use)
  */
 export function getAuthTokenFromCookie(): string | null {
-  if (typeof document === 'undefined') return null;
-  
-  const cookies = document.cookie.split(';');
+  if (typeof document === "undefined") return null;
+
+  const cookies = document.cookie.split(";");
   for (const cookie of cookies) {
-    const [name, value] = cookie.trim().split('=');
-    if (name === 'auth_token' && value) {
+    const [name, value] = cookie.trim().split("=");
+    if (name === AUTH_TOKEN_COOKIE_NAME && value) {
       return value;
     }
   }
   return null;
+}
+
+/**
+ * Clear the auth_token cookie (e.g. when backend returns "Invalid or expired token")
+ */
+export function clearAuthTokenCookie(): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `${AUTH_TOKEN_COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
 }
 
 /**
@@ -130,8 +140,8 @@ export async function apiFetch<T = any>(
   // Try to get token from cookie and add to Authorization header as fallback
   if (authenticated) {
     const token = getAuthTokenFromCookie();
-    if (token && !headers['Authorization']) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (token && !headers["Authorization"]) {
+      headers["Authorization"] = `Bearer ${token}`;
     }
   }
 
@@ -152,6 +162,9 @@ export async function apiFetch<T = any>(
   }
 
   if (!response.ok) {
+    if (response.status === 401 && data?.error === "Invalid or expired token") {
+      clearAuthTokenCookie();
+    }
     throw new Error(data.error || data.message || `HTTP ${response.status}`);
   }
 

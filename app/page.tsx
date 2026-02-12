@@ -21,7 +21,7 @@ import {
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { Card } from "@/components/ui/card"
 import { PageLoader } from "@/components/ui/preloader"
-import { getCurrentUser, type Profile } from "@/lib/api-client"
+import { getCurrentUser, buildApiUrl, type Profile } from "@/lib/api-client"
 import { SideMenu } from "@/components/side-menu"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
 
@@ -89,6 +89,12 @@ const communityDreams: CommunityDream[] = [
 const stars = (count: number) =>
   Array.from({ length: count }).map((_, idx) => <Star key={idx} size={14} className="text-amber-400" fill="currentColor" />)
 
+interface ApprovedComment {
+  id: string
+  content: string
+  user?: { fullName: string | null }
+}
+
 export default function HomePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -96,6 +102,8 @@ export default function HomePage() {
   const [fabOpen, setFabOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [approvedComments, setApprovedComments] = useState<ApprovedComment[]>([])
+  const [commentsLoading, setCommentsLoading] = useState(true)
 
   useEffect(() => {
     const checkUser = async () => {
@@ -112,6 +120,28 @@ export default function HomePage() {
     }
 
     checkUser()
+  }, [])
+
+  useEffect(() => {
+    const fetchApproved = async () => {
+      setCommentsLoading(true)
+      try {
+        const url = buildApiUrl("/comments") + "?approved=true"
+        const res = await fetch(url, { credentials: "omit" })
+        const data = await res.json().catch(() => null)
+        if (res.ok && data != null) {
+          const list = Array.isArray(data) ? data : (data?.comments ?? [])
+          setApprovedComments(Array.isArray(list) ? list : [])
+        } else {
+          setApprovedComments([])
+        }
+      } catch {
+        setApprovedComments([])
+      } finally {
+        setCommentsLoading(false)
+      }
+    }
+    fetchApproved()
   }, [])
 
   useEffect(() => {
@@ -247,26 +277,62 @@ export default function HomePage() {
         </section>
 
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div>
             <h2 className="text-lg font-bold text-slate-900">اراء عملاء احلامي</h2>
-            <button className="text-sm font-medium text-sky-600">المزيد</button>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {commentsLoading
+                ? "جاري تحميل الآراء..."
+                : approvedComments.length > 0
+                  ? "آراء معتمدة من الرائيين في منصتنا"
+                  : "آراء وتجارب من مجتمع احلامي"}
+            </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {testimonials.map((item) => (
-              <Card key={item.id} className="rounded-2xl border border-sky-100 bg-white/90 p-4 shadow-md">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-amber-400">{stars(item.rating)}</div>
-                  <Quote size={18} className="text-sky-400" />
-                </div>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{item.quote}</p>
-                <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-slate-500">
-                  <Heart size={14} className="text-rose-400" />
-                  <span>{item.name}</span>
-                </div>
-              </Card>
-            ))}
-          </div>
+          {commentsLoading ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {[1, 2].map((i) => (
+                <Card key={i} className="rounded-2xl border border-sky-100 bg-white/90 p-4 shadow-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-1 text-amber-200">{stars(5)}</div>
+                    <Quote size={18} className="text-sky-200" />
+                  </div>
+                  <div className="mt-3 h-4 w-full animate-pulse rounded bg-slate-100" />
+                  <div className="mt-2 h-4 w-3/4 animate-pulse rounded bg-slate-100" />
+                  <div className="mt-4 h-3 w-24 animate-pulse rounded bg-slate-100" />
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {approvedComments.length > 0
+                ? approvedComments.map((c) => (
+                    <Card key={c.id} className="rounded-2xl border border-sky-100 bg-white/90 p-4 shadow-md">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-amber-400">{stars(5)}</div>
+                        <Quote size={18} className="text-sky-400" />
+                      </div>
+                      <p className="mt-3 text-sm leading-7 text-slate-600">{c.content}</p>
+                      <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-slate-500">
+                        <Heart size={14} className="text-rose-400" />
+                        <span>{c.user?.fullName ?? "رائي"}</span>
+                      </div>
+                    </Card>
+                  ))
+                : testimonials.map((item) => (
+                    <Card key={item.id} className="rounded-2xl border border-sky-100 bg-white/90 p-4 shadow-md">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-amber-400">{stars(item.rating)}</div>
+                        <Quote size={18} className="text-sky-400" />
+                      </div>
+                      <p className="mt-3 text-sm leading-7 text-slate-600">{item.quote}</p>
+                      <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-slate-500">
+                        <Heart size={14} className="text-rose-400" />
+                        <span>{item.name}</span>
+                      </div>
+                    </Card>
+                  ))}
+            </div>
+          )}
         </section>
 
         <section className="space-y-4">

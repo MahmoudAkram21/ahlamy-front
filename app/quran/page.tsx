@@ -1,8 +1,15 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { InfoPageShell } from "@/components/info-page-shell"
+import { buildApiUrl } from "@/lib/api-client"
+
+const DEFAULT_TITLE = "القرآن الكريم"
+const DEFAULT_SUBTITLE = "اقرأ واستمع لتلاوات مختارة، وتعرّف على فضائل السور والأذكار اليومية."
+const DEFAULT_CTA_LABEL = "قراءة القرآن عبر Quran.com"
+const DEFAULT_CTA_HREF = "https://quran.com"
 
 const suraHighlights = [
   { title: "سورة الكهف", description: "اقرأها كل جمعة لنور ما بين الجمعتين.", link: "https://quran.com/18" },
@@ -11,13 +18,65 @@ const suraHighlights = [
 ]
 
 export default function QuranPage() {
+  const [cmsPage, setCmsPage] = useState<{ title: string | null; content: string } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchPage = async () => {
+      try {
+        const res = await fetch(buildApiUrl("/pages/quran"))
+        if (res.ok) {
+          const data = await res.json()
+          if (data?.page?.content != null) {
+            setCmsPage({ title: data.page.title ?? null, content: data.page.content })
+          }
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchPage()
+  }, [])
+
+  if (loading) {
+    return (
+      <>
+        <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 flex items-center justify-center">
+          <p className="text-slate-500">جاري التحميل...</p>
+        </div>
+        <BottomNavigation />
+      </>
+    )
+  }
+
+  if (cmsPage) {
+    return (
+      <>
+        <InfoPageShell
+          title={cmsPage.title || DEFAULT_TITLE}
+          subtitle={DEFAULT_SUBTITLE}
+          ctaLabel={DEFAULT_CTA_LABEL}
+          ctaHref={DEFAULT_CTA_HREF}
+        >
+          <section
+            className="quran-cms-content space-y-6 text-right"
+            dangerouslySetInnerHTML={{ __html: cmsPage.content }}
+          />
+        </InfoPageShell>
+        <BottomNavigation />
+      </>
+    )
+  }
+
   return (
     <>
       <InfoPageShell
-        title="القرآن الكريم"
-        subtitle="اقرأ واستمع لتلاوات مختارة، وتعرّف على فضائل السور والأذكار اليومية."
-        ctaLabel="قراءة القرآن عبر Quran.com"
-        ctaHref="https://quran.com"
+        title={DEFAULT_TITLE}
+        subtitle={DEFAULT_SUBTITLE}
+        ctaLabel={DEFAULT_CTA_LABEL}
+        ctaHref={DEFAULT_CTA_HREF}
       >
         <section className="space-y-6 text-right">
           <div className="rounded-2xl bg-sky-50/70 p-5">

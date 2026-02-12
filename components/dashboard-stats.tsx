@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { buildApiUrl } from "@/lib/api-client"
 
 interface Stats {
+  period?: "month" | "all"
   total: number
   new: number
   pending_payment?: number
@@ -65,7 +66,13 @@ export function DashboardStats({ role }: DashboardStatsProps) {
       ? allMetrics.filter((m) => m.key !== "pending_payment")
       : allMetrics
 
+  const isOneMonth = stats.period === "month"
+
   return (
+    <div>
+      {isOneMonth && (
+        <p className="text-xs text-slate-500 mb-3">آخر ٣٠ يوماً</p>
+      )}
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
       {metrics.map((metric) => {
         const href = metric.key === "total" ? "/dreams" : `/dreams?status=${metric.key}`
@@ -83,6 +90,7 @@ export function DashboardStats({ role }: DashboardStatsProps) {
           </Link>
         )
       })}
+    </div>
     </div>
   )
 }

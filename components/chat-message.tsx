@@ -3,6 +3,9 @@
 import { useState } from "react"
 import { Pencil, Check, X } from "lucide-react"
 
+/** Matches the interpreter verification question so we can show clickable نعم/لا */
+const VERIFICATION_PATTERN = /هل توافق؟\s*\(نعم\s*\/\s*لا\)/u
+
 interface ChatMessageProps {
   type: "interpreter" | "user"
   text: string
@@ -12,6 +15,8 @@ interface ChatMessageProps {
   editedAt?: string | null
   isEditable?: boolean
   onEdit?: (messageId: string, newContent: string) => Promise<void>
+  /** When set, messages containing the verification question show clickable نعم/لا that call this with "نعم" or "لا" */
+  onQuickReply?: (answer: string) => void
 }
 
 export function ChatMessage({
@@ -23,7 +28,13 @@ export function ChatMessage({
   editedAt,
   isEditable,
   onEdit,
+  onQuickReply,
 }: ChatMessageProps) {
+  const isVerificationQuestion =
+    onQuickReply && type === "interpreter" && VERIFICATION_PATTERN.test(text)
+  const textBeforeButtons = isVerificationQuestion
+    ? text.replace(VERIFICATION_PATTERN, "").trimEnd()
+    : null
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(text)
   const [saving, setSaving] = useState(false)
@@ -86,7 +97,30 @@ export function ChatMessage({
           </div>
         ) : (
           <>
-            <p className="text-sm leading-relaxed">{text}</p>
+            {textBeforeButtons != null ? (
+              <div className="text-sm leading-relaxed">
+                <p>{textBeforeButtons}</p>
+                <p className="mt-2 font-medium">هل توافق؟</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onQuickReply!("نعم")}
+                    className="rounded-full bg-white/90 px-4 py-1.5 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-white hover:shadow"
+                  >
+                    نعم
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onQuickReply!("لا")}
+                    className="rounded-full bg-white/90 px-4 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-white hover:shadow"
+                  >
+                    لا
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm leading-relaxed">{text}</p>
+            )}
             <div className="mt-1 flex items-center justify-end gap-1">
               {editedAt && (
                 <span className="text-xs opacity-75">(تم التعديل)</span>

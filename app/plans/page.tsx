@@ -81,6 +81,15 @@ export default function PlansPage() {
       if (cancelled) return
       setUserId(currentUser.user.id)
 
+      const role = currentUser.profile?.role ?? "dreamer"
+      const isAdmin = role === "admin" || role === "super_admin"
+      // When admin opens plans for a dream (dreamId), use dreamer's context: don't ask for admin's location; show all plans.
+      if (dreamId && isAdmin) {
+        setCountry("OTHER")
+        setLocationStatus("ready")
+        return
+      }
+
       const savedCountry = sessionStorage.getItem(PLANS_COUNTRY_KEY)
       if (savedCountry) {
         setCountry(savedCountry)
