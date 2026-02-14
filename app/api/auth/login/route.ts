@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Get backend URL - remove /api suffix if present to avoid double /api/api/
 const getBackendUrl = () => {
-  const url = process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
+  const url = process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site";
   // If URL already ends with /api, use it as-is, otherwise add /api
   return url.endsWith("/api") ? url : `${url}/api`;
 };
