@@ -3,7 +3,7 @@
  * Communicates with standalone backend server on port 5000
  */
 
-const API_BASE_URL = "/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
   // process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
 
 /**
