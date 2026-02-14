@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -22,6 +22,14 @@ import { BottomNavigation } from "@/components/bottom-navigation"
 import { Card } from "@/components/ui/card"
 import { PageLoader } from "@/components/ui/preloader"
 import { getCurrentUser, buildApiUrl, type Profile } from "@/lib/api-client"
+import {
+  getTimingsByCoords,
+  getTimingsByCity,
+  getNextPrayer,
+  getNowHHmm,
+  type PrayerTimesData,
+  type NextPrayer,
+} from "@/lib/prayer-times"
 import { SideMenu } from "@/components/side-menu"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
 
@@ -105,10 +113,79 @@ export default function HomePage() {
   const [approvedComments, setApprovedComments] = useState<ApprovedComment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(true)
 
+  const [prayerData, setPrayerData] = useState<PrayerTimesData | null>(null)
+  const [nextPrayer, setNextPrayer] = useState<NextPrayer | null>(null)
+  const [prayerLoading, setPrayerLoading] = useState(true)
+  const [prayerError, setPrayerError] = useState<string | null>(null)
+
+  const fetchPrayerTimes = useCallback(() => {
+    setPrayerLoading(true)
+    setPrayerError(null)
+    let cancelled = false
+
+    const resolve = async (lat?: number, lon?: number) => {
+      try {
+        const data =
+          lat != null && lon != null
+            ? await getTimingsByCoords(lat, lon)
+            : await getTimingsByCity("Cairo", "Egypt")
+        if (cancelled) return
+        if (!data) {
+          setPrayerError("تعذر تحميل المواقيت")
+          setPrayerData(null)
+          setNextPrayer(null)
+          return
+        }
+        setPrayerData(data)
+        const next = getNextPrayer(data.timings, getNowHHmm(data.timezone))
+        setNextPrayer(next)
+      } catch {
+        if (!cancelled) {
+          setPrayerError("تعذر تحميل المواقيت")
+          setPrayerData(null)
+          setNextPrayer(null)
+        }
+      } finally {
+        if (!cancelled) setPrayerLoading(false)
+      }
+    }
+
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve(pos.coords.latitude, pos.coords.longitude),
+        () => resolve(),
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+      )
+    } else {
+      resolve()
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchPrayerTimes()
+  }, [fetchPrayerTimes])
+
+  // Update next prayer every minute so the card stays correct (e.g. after 15:17 we show Maghrib)
+  useEffect(() => {
+    if (!prayerData) return
+    const updateNext = () => {
+      setNextPrayer((prev) => {
+        const next = getNextPrayer(prayerData.timings, getNowHHmm(prayerData.timezone))
+        return next ?? prev
+      })
+    }
+    const id = setInterval(updateNext, 60 * 1000)
+    return () => clearInterval(id)
+  }, [prayerData])
+
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const currentUser = await getCurrentUser()
+        const currentUser = await getCurrentUser() 
         if (currentUser) {
           setProfile(currentUser.profile)
         }
@@ -190,36 +267,71 @@ export default function HomePage() {
               <Image src="/ahlamy 3.png" alt="Cloud" width={150} height={160} />
             </div>
 
-            <button
+           {profile && <button
               className="relative p-2 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 transition hover:bg-white/25"
               onClick={() => setNotificationsOpen((prev) => !prev)}
               aria-label="الإشعارات"
             >
               <Bell size={22} />
               <span className="absolute -top-1 -left-1 h-2 w-2 rounded-full bg-amber-300 shadow animate-pulse" />
-            </button>
+            </button>}
           </div>
-
           <div className="relative z-10 mt-6 rounded-3xl border border-white/25 bg-white/15 p-4 backdrop-blur-lg shadow-lg">
             <div className="flex items-center justify-between text-white/90">
               <div className="flex items-center gap-2">
                 <CalendarDays size={18} />
                 <span className="text-sm font-semibold">الصلاة القادمة</span>
               </div>
-              <button className="flex items-center gap-1 text-xs text-white/80">
-                <RefreshCcw size={14} />
+              <button
+                type="button"
+                onClick={() => fetchPrayerTimes()}
+                disabled={prayerLoading}
+                className="flex items-center gap-1 text-xs text-white/80 disabled:opacity-60"
+              >
+                <RefreshCcw size={14} className={prayerLoading ? "animate-spin" : ""} />
                 تحديث
               </button>
             </div>
             <div className="mt-4 flex items-end justify-between">
-              <div>
-                <p className="text-sm text-white/80">السبت 17 جمادى الأول 1447</p>
-                <h2 className="text-3xl font-bold">الفجر</h2>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-white/70">8 نوفمبر 2025</p>
-                <p className="text-4xl font-extrabold tracking-wide">04:23</p>
-              </div>
+              {prayerLoading && (
+                <div className="flex w-full items-center justify-center py-6 text-white/80">
+                  <span className="text-sm">جاري تحميل المواقيت...</span>
+                </div>
+              )}
+              {!prayerLoading && prayerError && (
+                <div className="flex w-full flex-col items-center gap-2 py-4 text-center">
+                  <p className="text-sm text-white/90">{prayerError}</p>
+                  <button
+                    type="button"
+                    onClick={() => fetchPrayerTimes()}
+                    className="rounded-full bg-white/20 px-3 py-1 text-xs text-white"
+                  >
+                    إعادة المحاولة
+                  </button>
+                </div>
+              )}
+              {!prayerLoading && !prayerError && prayerData && (
+                <>
+                  <div>
+                    <p className="text-sm text-white/80">
+                      {prayerData.hijri ?? prayerData.dateReadable}
+                    </p>
+                    <h2 className="text-3xl font-bold">
+                      {nextPrayer ? nextPrayer.nameAr : "—"}
+                    </h2>
+                    {nextPrayer?.isTomorrow && (
+                      <p className="mt-1 text-xs text-white/70">غداً</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-white/70">{prayerData.dateReadable}</p>
+                    <p className="text-xs text-white/60">موعد الصلاة</p>
+                    <p className="text-4xl font-extrabold tracking-wide">
+                      {nextPrayer ? nextPrayer.time : "—"}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
