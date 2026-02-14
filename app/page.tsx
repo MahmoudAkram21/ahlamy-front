@@ -246,8 +246,8 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
-      <header className="rounded-b-[2rem] bg-gradient-to-br from-sky-600 via-sky-500 to-amber-300 text-white shadow-xl">
+    <div className="min-h-screen bg-linear-to-b from-sky-50 via-white to-amber-50 pb-28">
+      <header className="rounded-b-4xl bg-linear-to-br from-sky-600 via-sky-500 to-amber-300 text-white shadow-xl">
         <div className="relative px-4 pt-8 pb-10 overflow-hidden">
           <div className="absolute inset-0 opacity-20">
             <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full bg-white blur-3xl" />
@@ -347,7 +347,7 @@ export default function HomePage() {
                 className="group flex flex-col items-center gap-2 rounded-2xl bg-white/90 p-3 text-center text-xs font-semibold text-slate-600 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
               >
                 <span
-                  className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${link.accent} text-2xl shadow-inner transition group-hover:scale-105`}
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br ${link.accent} text-2xl shadow-inner transition group-hover:scale-105`}
                 >
                   {link.icon}
                 </span>
@@ -357,7 +357,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="rounded-3xl bg-gradient-to-r from-sky-500 via-sky-400 to-amber-300 p-1 shadow-xl">
+        <section className="rounded-3xl bg-linear-to-r from-sky-500 via-sky-400 to-amber-300 p-1 shadow-xl">
           <div className="rounded-[1.7rem] bg-white/90 p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -366,7 +366,7 @@ export default function HomePage() {
               </div>
               <Link
                 href="/dreams/new"
-                className="flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg"
+                className="flex items-center gap-2 rounded-full bg-linear-to-r from-sky-500 to-amber-400 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg"
               >
                 <span>ابدأ الآن</span>
                 <ChevronLeft size={18} />
@@ -382,7 +382,7 @@ export default function HomePage() {
                   sizes="(max-width: 768px) 100vw, 640px"
                   priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-slate-900/40 to-transparent" />
               </div>
             </div>
           </div>
@@ -497,7 +497,7 @@ export default function HomePage() {
 
           <button
             onClick={() => setFabOpen((prev) => !prev)}
-            className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-amber-400 text-white shadow-xl transition hover:scale-105 hover:shadow-2xl"
+            className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-sky-500 to-amber-400 text-white shadow-xl transition hover:scale-105 hover:shadow-2xl"
           >
             {fabOpen ? <X size={28} /> : <Plus size={28} />}
           </button>
@@ -508,7 +508,7 @@ export default function HomePage() {
       <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} profile={profile} />
       {notificationsOpen && (
         <>
-          <div className="fixed inset-0 z-[240]" onClick={() => setNotificationsOpen(false)} />
+          <div className="fixed inset-0 z-240" onClick={() => setNotificationsOpen(false)} />
           <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />
         </>
       )}

@@ -3,7 +3,7 @@
  * Communicates with standalone backend server on port 5000
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site";
   // process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
 
 /**
@@ -83,13 +83,10 @@ export function buildApiUrl(path: string) {
   // If path starts with /api/, it's a Next.js API route (same-origin)
   // Don't prepend backend URL - use as-is for same-origin requests
   // This prevents double /api/api/ in URLs
-  if (path.startsWith("/api/") || path === "/api") {
-    return path;
-  }
-  // For backend routes, prepend the backend URL
-  // Remove leading slash if present to avoid double slashes
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return `${API_BASE_URL}${cleanPath}`;
+  // if (path.startsWith("/api/") || path === "bas/api") {
+  //   return path;
+  // }
+  return `${API_BASE_URL}${path}`;
 }
 
 export interface ApiRequestOptions extends RequestInit {
@@ -266,7 +263,7 @@ export async function getCurrentUser(): Promise<{
 } | null> {
   try {
     // Use Next.js API route for cookie handling
-    return await apiFetch("/api/auth/me");
+    return await apiFetch(" /api/auth/me");
   } catch (error) {
     console.error("[Auth] Get current user error:", error);
     return null;
