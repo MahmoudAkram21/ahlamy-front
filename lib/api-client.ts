@@ -499,9 +499,9 @@ export const plansApi = {
 // ============================================
 
 export const adminApi = {
-  getStats: () => apiFetch("/admin/stats"),
+  getStats: () => apiFetch("/api/admin/stats"),
 
-  getAllUsers: () => apiFetch("/admin/users"),
+  getAllUsers: () => apiFetch("/api/admin/users"),
 
   createUser: (data: {
     email: string;
@@ -510,7 +510,7 @@ export const adminApi = {
     role: "dreamer" | "interpreter" | "admin" | "super_admin";
     isAvailable?: boolean;
   }) =>
-    apiFetch("/admin/users", {
+    apiFetch("/api/admin/users", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -522,18 +522,18 @@ export const adminApi = {
     totalInterpretations?: number;
     rating?: number;
   }) =>
-    apiFetch(`/admin/users/${userId}`, {
+    apiFetch(`/api/admin/users/${userId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
 
   deleteUser: (userId: string) =>
-    apiFetch(`/admin/users/${userId}`, {
+    apiFetch(`/api/admin/users/${userId}`, {
       method: "DELETE",
     }),
 
   makeSuperAdmin: (userId: string) =>
-    apiFetch("/admin/make-super-admin", {
+    apiFetch("/api/admin/make-super-admin", {
       method: "POST",
       body: JSON.stringify({ userId }),
     }),

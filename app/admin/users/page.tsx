@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentUser } from "@/lib/api-client"
+import { getCurrentUser, fetchWithAuth } from "@/lib/api-client"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { ArrowRight, Trash2, Eye, EyeOff, Plus } from "lucide-react"
-import { buildApiUrl } from "@/lib/api-client"
 import { PageLoader } from "@/components/ui/preloader"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -114,12 +113,8 @@ export default function AdminUsersPage() {
         rating,
       }
 
-      const response = await fetch(buildApiUrl(`/admin/users/${userId}`), {
+      const response = await fetchWithAuth(`/api/admin/users/${userId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
         body: JSON.stringify(payload),
       })
 
@@ -162,10 +157,8 @@ export default function AdminUsersPage() {
         return
       }
 
-      const response = await fetch(buildApiUrl('/admin/users'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetchWithAuth("/api/admin/users", {
+        method: "POST",
         body: JSON.stringify(createForm),
       })
 
@@ -202,9 +195,8 @@ export default function AdminUsersPage() {
       setDeleting(true)
       setFormError(null)
 
-      const response = await fetch(buildApiUrl(`/admin/users/${deleteConfirmUser.id}`), {
-        method: 'DELETE',
-        credentials: 'include',
+      const response = await fetchWithAuth(`/api/admin/users/${deleteConfirmUser.id}`, {
+        method: "DELETE",
       })
 
       if (!response.ok) {
@@ -242,9 +234,7 @@ export default function AdminUsersPage() {
 
         console.log('[Admin Users] Fetching users...')
         
-        const response = await fetch(buildApiUrl('/admin/users'), {
-          credentials: 'include',
-        })
+        const response = await fetchWithAuth("/api/admin/users")
 
         if (response.status === 403) {
           router.push("/admin/dreams")
@@ -271,19 +261,19 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
       <DashboardHeader />
 
-      <main className="mx-auto mt-6 w-full max-w-6xl px-4">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+      <main className="mx-auto mt-6 w-full max-w-6xl min-w-0 px-4 overflow-x-hidden">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="rounded-full bg-white/70 p-2 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:text-sky-600"
+              className="shrink-0 rounded-full bg-white/70 p-2 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:text-sky-600"
             >
               <ArrowRight size={22} />
             </button>
-            <h1 className="text-2xl font-bold text-slate-900">إدارة المستخدمين</h1>
+            <h1 className="min-w-0 truncate text-xl font-bold text-slate-900 sm:text-2xl">إدارة المستخدمين</h1>
           </div>
           <button
             onClick={() => {
@@ -291,7 +281,7 @@ export default function AdminUsersPage() {
               setFormSuccess(null)
               setShowCreateDialog(true)
             }}
-            className="flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+            className="flex shrink-0 items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
           >
             <Plus size={18} />
             <span>إضافة مستخدم</span>
