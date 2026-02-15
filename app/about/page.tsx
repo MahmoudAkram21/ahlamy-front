@@ -21,7 +21,7 @@ export default function AboutPage() {
   useEffect(() => {
     const loadPage = async () => {
       try {
-        const response = await fetch(buildApiUrl('/pages/about'), {
+        const response = await fetch(buildApiUrl('/api/pages/about'), {
           cache: 'no-store', // Prevent caching
         })
 

@@ -29,7 +29,7 @@ export default function RatePage() {
   useEffect(() => {
     const loadPage = async () => {
       try {
-        const response = await fetch(buildApiUrl("/pages/rate"), {
+        const response = await fetch(buildApiUrl("/api/pages/rate"), {
           cache: "no-store",
         })
         if (response.ok) {

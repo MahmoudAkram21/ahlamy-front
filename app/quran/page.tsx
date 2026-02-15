@@ -24,7 +24,7 @@ export default function QuranPage() {
   useEffect(() => {
     const fetchPage = async () => {
       try {
-        const res = await fetch(buildApiUrl("/pages/quran"))
+        const res = await fetch(buildApiUrl("/api/pages/quran"))
         if (res.ok) {
           const data = await res.json()
           if (data?.page?.content != null) {

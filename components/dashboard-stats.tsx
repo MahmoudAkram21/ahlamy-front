@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
-import { buildApiUrl } from "@/lib/api-client"
+import { fetchWithAuth } from "@/lib/api-client"
 
 interface Stats {
   period?: "month" | "all"
@@ -27,9 +27,7 @@ export function DashboardStats({ role }: DashboardStatsProps) {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(buildApiUrl("/dreams/stats"), {
-          credentials: 'include',
-        })
+        const response = await fetchWithAuth("/api/dreams/stats")
         if (response.ok) {
           const data = await response.json()
           setStats(data)

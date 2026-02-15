@@ -56,7 +56,7 @@ const [pageContent, setPageContent] = useState<SettingConfig | null>(null)
         const response = await fetch(buildApiUrl("/app-settings"), {
           cache: "no-store",
         })
-        const pageContent = await fetch(buildApiUrl("/pages/support"), {
+        const pageContent = await fetch(buildApiUrl("/api/pages/support"), {
           cache: "no-store",
         })
 

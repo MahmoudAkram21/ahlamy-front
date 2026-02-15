@@ -36,7 +36,7 @@ export default function LoginPage() {
       
       // Redirect immediately - cookie should be set by the API route
       const redirect = searchParams.get('redirect') || '/dashboard'
-      window.location.href = redirect
+      window.location.href = redirect 
     } catch (err) {
       console.log("[Auth] Login exception:", err)
       setError("حدث خطأ ما. يرجى المحاولة مرة أخرى.")

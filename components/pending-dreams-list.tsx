@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { buildApiUrl, getCurrentUser } from "@/lib/api-client"
+import { fetchWithAuth, getCurrentUser } from "@/lib/api-client"
 
 interface Dream {
   id: string
@@ -24,11 +24,9 @@ export function PendingDreamsList() {
         const currentUser = await getCurrentUser()
         const userRole = currentUser?.profile?.role ?? "dreamer"
         const endpoint =
-          userRole === "interpreter" ? "/dreams/assigned" : "/dreams/my-dreams"
+          userRole === "interpreter" ? "/api/dreams/assigned" : "/api/dreams/my-dreams"
 
-        const response = await fetch(buildApiUrl(endpoint), {
-          credentials: "include",
-        })
+        const response = await fetchWithAuth(endpoint)
         if (response.ok) {
           const data = await response.json()
           const pending = data.filter(

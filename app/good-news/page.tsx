@@ -21,7 +21,7 @@ export default function GoodNewsPage() {
   useEffect(() => {
     const loadPage = async () => {
       try {
-        const response = await fetch(buildApiUrl('/pages/good-news'), {
+        const response = await fetch(buildApiUrl('/api/pages/good-news'), {
           cache: 'no-store',
         })
 

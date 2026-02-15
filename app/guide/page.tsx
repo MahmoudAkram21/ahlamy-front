@@ -21,7 +21,7 @@ export default function GuidePage() {
   useEffect(() => {
     const loadPage = async () => {
       try {
-        const response = await fetch(buildApiUrl('/pages/guide'), {
+        const response = await fetch(buildApiUrl('/api/pages/guide'), {
           cache: 'no-store',
         })
 

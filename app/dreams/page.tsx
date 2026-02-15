@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PageLoader } from "@/components/ui/preloader";
-import { buildApiUrl, getCurrentUser } from "@/lib/api-client";
+import { fetchWithAuth, getCurrentUser } from "@/lib/api-client";
 
 interface Dream {
   id: string;
@@ -45,15 +45,12 @@ export default function DreamsPage() {
 
         const endpoint =
           userRole === "interpreter"
-            ? "/dreams/assigned"
+            ? "/api/dreams/assigned"
             : userRole === "admin" || userRole === "super_admin"
-              ? "/dreams"
-              : "/dreams/my-dreams";
+              ? "/api/dreams"
+              : "/api/dreams/my-dreams";
 
-        const response = await fetch(buildApiUrl(endpoint), {
-          method: "GET",
-          credentials: "include",
-        });
+        const response = await fetchWithAuth(endpoint);
 
         if (response.status === 401) {
           router.push("/auth/login");

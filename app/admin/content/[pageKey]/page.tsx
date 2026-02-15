@@ -40,7 +40,7 @@ export default function EditContentPage({ params }: { params: Promise<{ pageKey:
                     return
                 }
 
-                const response = await fetch(buildApiUrl(`/admin/pages/${unwrappedParams.pageKey}`), {
+                const response = await fetch(buildApiUrl(`/api/admin/pages/${unwrappedParams.pageKey}`), {
                     credentials: 'include',
                 })
 
@@ -68,7 +68,7 @@ export default function EditContentPage({ params }: { params: Promise<{ pageKey:
         try {
             setSaving(true)
 
-            const response = await fetch(buildApiUrl(`/admin/pages/${unwrappedParams.pageKey}`), {
+            const response = await fetch(buildApiUrl(`/api/admin/pages/${unwrappedParams.pageKey}`), {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

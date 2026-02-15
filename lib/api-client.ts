@@ -80,12 +80,7 @@ export function buildApiUrl(path: string) {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
-  // If path starts with /api/, it's a Next.js API route (same-origin)
-  // Don't prepend backend URL - use as-is for same-origin requests
-  // This prevents double /api/api/ in URLs
-  // if (path.startsWith("/api/") || path === "bas/api") {
-  //   return path;
-  // }
+
   return `${API_BASE_URL}${path}`;
 }
 
@@ -117,6 +112,27 @@ export function getAuthTokenFromCookie(): string | null {
 export function clearAuthTokenCookie(): void {
   if (typeof document === "undefined") return;
   document.cookie = `${AUTH_TOKEN_COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
+}
+
+/**
+ * Fetch from the external API with auth token in Authorization header.
+ * Use this when calling the backend from the client: the auth_token cookie is
+ * set on the app domain, so cross-origin requests must send the token as Bearer.
+ */
+export function fetchWithAuth(path: string, init: RequestInit = {}): Promise<Response> {
+  const token = getAuthTokenFromCookie();
+  const headers = new Headers(init.headers);
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  return fetch(buildApiUrl(path), {
+    ...init,
+    credentials: "include",
+    headers,
+  });
 }
 
 /**
@@ -201,18 +217,29 @@ export const authApi = {
 
 /**
  * Login a user with email and password
- * Uses Next.js API route for proper cookie handling
+ * Calls same-origin Next.js API route so the route can set auth_token cookie on this domain.
+ * (apiFetch uses buildApiUrl which points to the external backend - we must hit our own /api/auth/login.)
  */
 export async function login(
   email: string,
   password: string
 ): Promise<{ user: User; profile: Profile } | null> {
   try {
-    // Use Next.js API route for cookie handling
-    return await apiFetch("/api/auth/login", {
+    const response = await fetch("/api/auth/login", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
+      credentials: "include",
     });
+    const contentType = response.headers.get("content-type");
+    const data =
+      contentType?.includes("application/json")
+        ? await response.json()
+        : { message: await response.text() };
+    if (!response.ok) {
+      throw new Error(data.error || data.message || `HTTP ${response.status}`);
+    }
+    return data;
   } catch (error) {
     console.error("[Auth] Login error:", error);
     return null;
@@ -255,15 +282,17 @@ export async function logout(): Promise<boolean> {
 
 /**
  * Get the current authenticated user
- * Uses Next.js API route for proper cookie handling
+ * Calls same-origin Next.js API route so the cookie is sent; route forwards to backend.
  */
 export async function getCurrentUser(): Promise<{
   user: User;
   profile: Profile;
 } | null> {
   try {
-    // Use Next.js API route for cookie handling
-    return await apiFetch(" /api/auth/me");
+    const response = await fetch("/api/auth/me", { credentials: "include" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to get user");
+    return data;
   } catch (error) {
     console.error("[Auth] Get current user error:", error);
     return null;
@@ -378,10 +407,10 @@ export const messagesApi = {
 // ============================================
 
 export const commentsApi = {
-  getByDream: (dreamId: string) => apiFetch(`/comments?dream_id=${dreamId}`),
+  getByDream: (dreamId: string) => apiFetch(`/api/comments?dream_id=${dreamId}`),
 
   create: (data: { dreamId: string; content: string }) =>
-    apiFetch("/comments", {
+    apiFetch("/api/comments", {
       method: "POST",
       body: JSON.stringify(data),
     }),

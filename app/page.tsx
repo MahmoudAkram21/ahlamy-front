@@ -203,7 +203,7 @@ export default function HomePage() {
     const fetchApproved = async () => {
       setCommentsLoading(true)
       try {
-        const url = buildApiUrl("/comments") + "?approved=true"
+        const url = buildApiUrl("/api/comments") + "?approved=true"
         const res = await fetch(url, { credentials: "omit" })
         const data = await res.json().catch(() => null)
         if (res.ok && data != null) {

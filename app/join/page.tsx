@@ -23,7 +23,7 @@ export default function JoinPage() {
   useEffect(() => {
     const loadPage = async () => {
       try {
-        const response = await fetch(buildApiUrl("/pages/join"), {
+        const response = await fetch(buildApiUrl("/api/pages/join"), {
           cache: "no-store",
         })
         if (response.ok) {

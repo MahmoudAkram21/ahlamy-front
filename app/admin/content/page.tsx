@@ -55,7 +55,7 @@ export default function AdminContentPage() {
     const handleSeedPages = async () => {
         try {
             setSeeding(true)
-            const response = await fetch(buildApiUrl('/admin/pages/seed'), {
+            const response = await fetch(buildApiUrl('/api/admin/pages/seed'), {
                 method: 'POST',
                 credentials: 'include',
             })

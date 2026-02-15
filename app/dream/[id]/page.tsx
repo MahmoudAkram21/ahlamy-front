@@ -18,6 +18,7 @@ import {
 import {
   getCurrentUser,
   buildApiUrl,
+  fetchWithAuth,
   getAuthTokenFromCookie,
   getSocketServerUrl,
 } from "@/lib/api-client";
@@ -271,9 +272,7 @@ export default function DreamDetailPage({
     if (!dream?.id) return;
     const fetchComments = async () => {
       try {
-        const res = await fetch(buildApiUrl(`/comments?dream_id=${dream.id}`), {
-          credentials: "include",
-        });
+        const res = await fetchWithAuth(`/api/comments?dream_id=${dream.id}`);
         if (res.ok) {
           const list = await res.json();
           setComments(Array.isArray(list) ? list : []);
@@ -399,10 +398,8 @@ export default function DreamDetailPage({
     if (!dream?.id || !commentText.trim()) return;
     setCommentSubmitting(true);
     try {
-      const res = await fetch(buildApiUrl("/comments"), {
+      const res = await fetchWithAuth("/api/comments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ dream_id: dream.id, content: commentText.trim() }),
       });
       if (res.ok) {

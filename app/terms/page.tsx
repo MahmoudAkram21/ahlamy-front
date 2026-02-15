@@ -21,7 +21,7 @@ export default function TermsPage() {
   useEffect(() => {
     const loadPage = async () => {
       try {
-        const response = await fetch(buildApiUrl('/pages/terms'), {
+        const response = await fetch(buildApiUrl('/api/pages/terms'), {
           cache: 'no-store',
         })
 

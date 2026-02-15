@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentUser } from "@/lib/api-client"
-import { buildApiUrl } from "@/lib/api-client"
+import { getCurrentUser, fetchWithAuth } from "@/lib/api-client"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { PageLoader } from "@/components/ui/preloader"
@@ -32,7 +31,7 @@ export default function AdminCommentsPage() {
           router.push("/dashboard")
           return
         }
-        const res = await fetch(buildApiUrl("/admin/comments"), { credentials: "include" })
+        const res = await fetchWithAuth("/api/admin/comments")
         if (res.ok) {
           const data = await res.json()
           setComments(data.comments || [])
@@ -49,10 +48,8 @@ export default function AdminCommentsPage() {
   const toggleApproved = async (comment: Comment) => {
     setTogglingId(comment.id)
     try {
-      const res = await fetch(buildApiUrl(`/admin/comments/${comment.id}`), {
+      const res = await fetchWithAuth(`/api/admin/comments/${comment.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ isApproved: !comment.isApproved }),
       })
       if (res.ok) {

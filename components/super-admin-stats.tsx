@@ -31,7 +31,7 @@ export function SuperAdminStats() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(buildApiUrl("/admin/stats"), {
+        const response = await fetch(buildApiUrl("/api/admin/stats"), {
           credentials: "include",
         })
         if (response.ok) {

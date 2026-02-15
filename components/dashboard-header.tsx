@@ -18,7 +18,7 @@ export function DashboardHeader() {
 
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const data = await apiFetch<{ unreadCount: number }>("/notifications/unread-count")
+      const data = await apiFetch<{ unreadCount: number }>("/api/notifications/unread-count")
       setUnreadCount(data.unreadCount ?? 0)
     } catch {
       setUnreadCount(0)
