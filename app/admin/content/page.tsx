@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentUser } from "@/lib/api-client"
-import { buildApiUrl } from "@/lib/api-client"
+import { getCurrentUser, fetchWithAuth } from "@/lib/api-client"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { Button } from "@/components/ui/button"
@@ -34,9 +33,7 @@ export default function AdminContentPage() {
                     return
                 }
 
-                const response = await fetch(buildApiUrl('/admin/pages'), {
-                    credentials: 'include',
-                })
+                const response = await fetchWithAuth("/api/admin/pages")
 
                 if (response.ok) {
                     const data = await response.json()
@@ -55,16 +52,13 @@ export default function AdminContentPage() {
     const handleSeedPages = async () => {
         try {
             setSeeding(true)
-            const response = await fetch(buildApiUrl('/api/admin/pages/seed'), {
-                method: 'POST',
-                credentials: 'include',
+            const response = await fetchWithAuth("/api/admin/pages/seed", {
+                method: "POST",
             })
 
             if (response.ok) {
                 // Reload pages
-                const pagesResponse = await fetch(buildApiUrl('/admin/pages'), {
-                    credentials: 'include',
-                })
+                const pagesResponse = await fetchWithAuth("/api/admin/pages")
                 if (pagesResponse.ok) {
                     const data = await pagesResponse.json()
                     setPages(data.pages || [])
