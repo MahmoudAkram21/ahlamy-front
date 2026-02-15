@@ -282,14 +282,14 @@ export async function logout(): Promise<boolean> {
 
 /**
  * Get the current authenticated user
- * Calls same-origin Next.js API route so the cookie is sent; route forwards to backend.
+ * Uses the backend URL from .env (NEXT_PUBLIC_API_URL) and sends the token via fetchWithAuth.
  */
 export async function getCurrentUser(): Promise<{
   user: User;
   profile: Profile;
 } | null> {
   try {
-    const response = await fetch("/api/auth/me", { credentials: "include" });
+    const response = await fetchWithAuth("/api/auth/me");
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Failed to get user");
     return data;

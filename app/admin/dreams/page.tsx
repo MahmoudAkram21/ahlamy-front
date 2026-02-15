@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentUser } from "@/lib/api-client"
-import { buildApiUrl } from "@/lib/api-client"
+import { getCurrentUser, fetchWithAuth } from "@/lib/api-client"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { Button } from "@/components/ui/button"
@@ -64,8 +63,8 @@ export default function AdminDreamsPage() {
         }
 
         const [dreamsRes, interpretersRes] = await Promise.all([
-          fetch(buildApiUrl("/dreams"), { credentials: "include" }),
-          fetch(buildApiUrl("/admin/interpreters"), { credentials: "include" }),
+          fetchWithAuth("/api/dreams"),
+          fetchWithAuth("/api/admin/interpreters"),
         ])
 
         if (!dreamsRes.ok) {
@@ -104,12 +103,8 @@ export default function AdminDreamsPage() {
       setSaving(true)
       setError(null)
 
-      const response = await fetch(buildApiUrl(`/dreams/${dreamId}`), {
+      const response = await fetchWithAuth(`/api/dreams/${dreamId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
         body: JSON.stringify({ interpreter_id: interpreterId }),
       })
 
