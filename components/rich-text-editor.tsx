@@ -54,9 +54,9 @@ export function RichTextEditor({
   }, [exec])
 
   return (
-    <div className={`rich-text-editor-wrap ${className}`} dir="rtl">
+    <div className={`rich-text-editor-wrap w-full max-w-full min-w-0 overflow-hidden ${className}`} dir="rtl">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 rounded-t-2xl border border-sky-100 border-b-0 bg-slate-50 p-2">
+      <div className="flex flex-wrap items-center gap-2 rounded-t-2xl border border-sky-100 border-b-0 bg-slate-50 p-2 min-w-0">
         <button
           type="button"
           onClick={() => exec("formatBlock", "h1")}
@@ -146,7 +146,7 @@ export function RichTextEditor({
           document.execCommand("insertHTML", false, text)
           handleInput()
         }}
-        className="rich-text-editor-content min-h-[280px] rounded-b-2xl border border-sky-100 bg-white px-4 py-3 text-right text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 [&:empty::before]:content-[attr(data-placeholder)] [&:empty::before]:text-slate-400 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-slate-900 [&_h1]:mb-2 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-slate-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:text-sm [&_p]:text-slate-600 [&_p]:leading-relaxed [&_p]:mb-2 [&_ul]:list-disc [&_ul]:mr-6 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:mr-6 [&_ol]:my-2 [&_li]:text-sm [&_li]:text-slate-600 [&_a]:text-sky-600 [&_a]:underline [&_a]:font-semibold"
+        className="rich-text-editor-content min-h-[280px] w-full max-w-full overflow-x-auto rounded-b-2xl border border-sky-100 bg-white px-4 py-3 text-right text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 [&:empty::before]:content-[attr(data-placeholder)] [&:empty::before]:text-slate-400 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-slate-900 [&_h1]:mb-2 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-slate-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:text-sm [&_p]:text-slate-600 [&_p]:leading-relaxed [&_p]:mb-2 [&_ul]:list-disc [&_ul]:mr-6 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:mr-6 [&_ol]:my-2 [&_li]:text-sm [&_li]:text-slate-600 [&_a]:text-sky-600 [&_a]:underline [&_a]:font-semibold [&_*]:max-w-full [&_*]:break-words"
         style={{ minHeight }}
       />
     </div>

@@ -2,8 +2,7 @@
 
 import { use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentUser } from "@/lib/api-client"
-import { buildApiUrl } from "@/lib/api-client"
+import { getCurrentUser, fetchWithAuth } from "@/lib/api-client"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { Button } from "@/components/ui/button"
@@ -40,9 +39,7 @@ export default function EditContentPage({ params }: { params: Promise<{ pageKey:
                     return
                 }
 
-                const response = await fetch(buildApiUrl(`/api/admin/pages/${unwrappedParams.pageKey}`), {
-                    credentials: 'include',
-                })
+                const response = await fetchWithAuth(`/api/admin/pages/${unwrappedParams.pageKey}`)
 
                 if (response.ok) {
                     const data = await response.json()
@@ -68,12 +65,8 @@ export default function EditContentPage({ params }: { params: Promise<{ pageKey:
         try {
             setSaving(true)
 
-            const response = await fetch(buildApiUrl(`/api/admin/pages/${unwrappedParams.pageKey}`), {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
+            const response = await fetchWithAuth(`/api/admin/pages/${unwrappedParams.pageKey}`, {
+                method: "PATCH",
                 body: JSON.stringify({
                     title,
                     content,
@@ -103,25 +96,25 @@ export default function EditContentPage({ params }: { params: Promise<{ pageKey:
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
+        <div className="min-h-screen overflow-x-hidden bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
             <DashboardHeader />
 
-            <main className="mx-auto mt-6 w-full max-w-6xl px-4">
-                <div className="mb-6 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+            <main className="mx-auto mt-6 w-full max-w-6xl min-w-0 px-4 overflow-x-hidden">
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex min-w-0 flex-shrink-0 items-center gap-3">
                         <button
                             onClick={() => router.back()}
-                            className="rounded-full bg-white/70 p-2 text-slate-600 shadow-sm transition hover:text-sky-600"
+                            className="shrink-0 rounded-full bg-white/70 p-2 text-slate-600 shadow-sm transition hover:text-sky-600"
                         >
                             <ArrowRight size={22} />
                         </button>
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-900">تحرير: {page.pageKey}</h1>
+                        <div className="min-w-0">
+                            <h1 className="truncate text-xl font-bold text-slate-900 sm:text-2xl">تحرير: {page.pageKey}</h1>
                             <p className="text-sm text-slate-600">تعديل محتوى الصفحة</p>
                         </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <Button
                             onClick={() => window.open(`/${page.pageKey}`, '_blank')}
                             className="rounded-full border-2 border-sky-200 bg-white px-4 py-2 text-sky-600 hover:bg-sky-50"
@@ -140,9 +133,9 @@ export default function EditContentPage({ params }: { params: Promise<{ pageKey:
                     </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="min-w-0 space-y-4">
                     {/* Title */}
-                    <div className="rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg">
+                    <div className="min-w-0 rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg">
                         <label className="mb-2 block text-sm font-semibold text-slate-700">
                             عنوان الصفحة
                         </label>
@@ -156,7 +149,7 @@ export default function EditContentPage({ params }: { params: Promise<{ pageKey:
                     </div>
 
                     {/* Content */}
-                    <div className="rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg">
+                    <div className="min-w-0 rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg">
                         <label className="mb-2 block text-sm font-semibold text-slate-700">
                             محتوى الصفحة
                         </label>
@@ -171,7 +164,7 @@ export default function EditContentPage({ params }: { params: Promise<{ pageKey:
                     </div>
 
                     {/* Publish Toggle */}
-                    <div className="rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg">
+                    <div className="min-w-0 rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-lg">
                         <div className="flex items-center justify-between">
                             <div>
                                 <label className="text-sm font-semibold text-slate-700">
