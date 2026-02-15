@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentUser } from "@/lib/api-client"
-import { buildApiUrl } from "@/lib/api-client"
+import { getCurrentUser, fetchWithAuth } from "@/lib/api-client"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { PageLoader } from "@/components/ui/preloader"
@@ -67,16 +66,10 @@ export default function AdminInterpretersPage() {
 
         setIsSuperAdmin(Boolean(current.profile.isSuperAdmin))
 
-        const urls: [string, RequestInit?][] = [
-          [buildApiUrl("/admin/interpreters"), { credentials: "include" }],
-        ]
-        if (current.profile.isSuperAdmin) {
-          urls.push([buildApiUrl(`/admin/interpreters/stats-by-type?month=${statsMonthParam}`), { credentials: "include" }])
-        }
-
-        const [interpretersRes, statsRes] = await Promise.all(
-          urls.map(([url, opts]) => fetch(url, opts))
-        ) as [Response, Response?]
+        const interpretersRes = await fetchWithAuth("/api/admin/interpreters")
+        const statsRes = current.profile.isSuperAdmin
+          ? await fetchWithAuth(`/api/admin/interpreters/stats-by-type?month=${statsMonthParam}`)
+          : null
 
         if (interpretersRes.status === 403) {
           router.push("/dashboard")
@@ -88,7 +81,7 @@ export default function AdminInterpretersPage() {
           setInterpreters(data.interpreters || [])
         }
         if (current.profile.isSuperAdmin && statsRes?.ok) {
-          const statsData = await (statsRes as Response).json()
+          const statsData = await statsRes.json()
           setStatsByType(statsData.stats || [])
           setStatsMonth(statsData.month || "")
         }
@@ -104,8 +97,9 @@ export default function AdminInterpretersPage() {
 
   const handleExport = async (format: string) => {
     try {
-      const url = `${buildApiUrl("/admin/interpreters/stats-by-type/export")}?format=${format}&month=${statsMonthParam}`
-      const res = await fetch(url, { credentials: "include" })
+      const res = await fetchWithAuth(
+        `/api/admin/interpreters/stats-by-type/export?format=${format}&month=${statsMonthParam}`
+      )
       if (!res.ok) return
       const blob = await res.blob()
       const disposition = res.headers.get("Content-Disposition")

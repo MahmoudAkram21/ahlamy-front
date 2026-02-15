@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentUser } from "@/lib/api-client"
+import { getCurrentUser, fetchWithAuth } from "@/lib/api-client"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { DashboardHeader } from "@/components/dashboard-header"
-import { buildApiUrl } from "@/lib/api-client"
 import { PageLoader } from "@/components/ui/preloader"
 
 interface AdminStats {
@@ -49,9 +48,7 @@ export default function AdminPage() {
         console.log('[Admin] Super admin authenticated, fetching stats...')
 
         // Fetch stats
-        const response = await fetch(buildApiUrl('/admin/stats'), {
-          credentials: 'include',
-        })
+        const response = await fetchWithAuth("/api/admin/stats")
 
         if (response.status === 403) {
           router.push("/dashboard")

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
-import { buildApiUrl } from "@/lib/api-client"
+import { fetchWithAuth } from "@/lib/api-client"
 
 interface AdminStats {
   stats: {
@@ -31,9 +31,7 @@ export function SuperAdminStats() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(buildApiUrl("/api/admin/stats"), {
-          credentials: "include",
-        })
+        const response = await fetchWithAuth("/api/admin/stats")
         if (response.ok) {
           const json = await response.json()
           setData(json)
