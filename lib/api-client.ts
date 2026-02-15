@@ -268,16 +268,18 @@ export async function register(
 }
 
 /**
- * Logout the current user
+ * Logout the current user.
+ * Calls backend /api/auth/logout then clears the auth_token cookie so the app treats the user as logged out.
  */
 export async function logout(): Promise<boolean> {
   try {
-    await authApi.logout();
-    return true;
+    await fetchWithAuth("/api/auth/logout", { method: "POST" });
   } catch (error) {
     console.error("[Auth] Logout error:", error);
-    return false;
+    // Still clear cookie so user is logged out locally even if backend fails
   }
+  clearAuthTokenCookie();
+  return true;
 }
 
 /**
