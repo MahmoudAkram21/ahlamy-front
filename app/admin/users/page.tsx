@@ -298,9 +298,12 @@ export default function AdminUsersPage() {
           </div>
         )}
 
-        <div className="overflow-hidden rounded-3xl border border-sky-100 bg-white/95 shadow-lg backdrop-blur">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-sky-100 text-right">
+        <div className="min-w-0 overflow-hidden rounded-3xl border border-sky-100 bg-white/95 shadow-lg backdrop-blur">
+          <div
+            className="w-full min-w-0 overflow-x-auto overflow-y-visible"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <table className="min-w-full divide-y divide-sky-100 text-right" style={{ minWidth: "max-content" }}>
               <thead className="bg-sky-50/80">
                 <tr>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-600">الاسم</th>
