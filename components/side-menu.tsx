@@ -16,6 +16,7 @@ import {
   Monitor,
   ScrollText,
   Share2,
+  Shield,
   Star,
   Users,
   User,
@@ -81,6 +82,11 @@ export function SideMenu({ open, onClose, profile }: SideMenuProps) {
         label: "الشروط والأحكام",
         href: "/terms",
         icon: <ScrollText size={20} />,
+      },
+      {
+        label: "سياسة الخصوصية",
+        href: "/privacy",
+        icon: <Shield size={20} />,
       },
       {
         label: "البريد الإلكتروني",
