@@ -35,7 +35,7 @@ export function HeaderMenu({ onClose }: HeaderMenuProps) {
       <div className="py-2">
         <button
           onClick={() => {
-            router.push("/settings")
+            router.push("/account")
             onClose()
           }}
           className="w-full px-4 py-2 text-right flex items-center gap-3 hover:bg-muted transition-colors text-foreground"
@@ -45,7 +45,7 @@ export function HeaderMenu({ onClose }: HeaderMenuProps) {
         </button>
         <button
           onClick={() => {
-            router.push("/help")
+            router.push("/support")
             onClose()
           }}
           className="w-full px-4 py-2 text-right flex items-center gap-3 hover:bg-muted transition-colors text-foreground"
