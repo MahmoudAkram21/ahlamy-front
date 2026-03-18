@@ -176,7 +176,12 @@ export default function HomePage() {
                 <CalendarDays size={18} />
                 <span className="text-sm font-semibold">الصلاة القادمة</span>
               </div>
-              <button className="flex items-center gap-1 text-xs text-white/80">
+              <button
+                type="button"
+                onClick={() => router.push("/prayer-times")}
+                className="flex items-center gap-1 text-xs text-white/80 hover:underline"
+                aria-label="تحديث مواقيت الصلاة"
+              >
                 <RefreshCcw size={14} />
                 تحديث
               </button>
@@ -248,8 +253,10 @@ export default function HomePage() {
 
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-900">اراء عملاء احلامي</h2>
-            <button className="text-sm font-medium text-sky-600">المزيد</button>
+            <h2 className="text-lg font-bold text-slate-900">آراء المستخدمين</h2>
+            <Link href="/testimonials" className="text-sm font-medium text-sky-600 hover:underline">
+              المزيد
+            </Link>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -272,7 +279,9 @@ export default function HomePage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-900">من رؤى مجتمع احلامي</h2>
-            <button className="text-sm font-medium text-sky-600">المزيد</button>
+            <Link href="/community" className="text-sm font-medium text-sky-600 hover:underline">
+              المزيد
+            </Link>
           </div>
           <div className="space-y-3">
             {communityDreams.map((dream) => (
@@ -282,9 +291,14 @@ export default function HomePage() {
                   <span>{dream.date}</span>
                 </div>
                 <p className="mt-3 text-sm leading-7 text-slate-700">{dream.preview}</p>
-                <div className="mt-3 flex items-center justify-between text-xs text-sky-600">
-                  <button className="font-semibold">شارك التفسير</button>
-                  <button className="font-semibold">تفاصيل أكثر</button>
+                <div className="mt-3">
+                  <Link
+                    href={`/community#dream-${dream.id}`}
+                    className="text-xs font-semibold text-sky-600 hover:underline"
+                    aria-label="لتفاصيل أكثر"
+                  >
+                    لتفاصيل أكثر
+                  </Link>
                 </div>
               </Card>
             ))}

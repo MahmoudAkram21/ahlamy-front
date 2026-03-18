@@ -139,49 +139,48 @@ export default function AccountPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Check file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      alert('حجم الصورة كبير جداً! الحد الأقصى 2MB')
+      alert("حجم الصورة كبير جداً! الحد الأقصى 2MB")
+      e.target.value = ""
       return
     }
 
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      alert('يرجى اختيار صورة صالحة')
+    if (!file.type.startsWith("image/")) {
+      alert("يرجى اختيار صورة صالحة")
+      e.target.value = ""
       return
     }
 
     try {
-      console.log('[Account] Uploading avatar...')
-      
-      // Convert to base64
-      const reader = new FileReader()
-      reader.onloadend = async () => {
-        const base64 = reader.result as string
-
-        const response = await fetch(buildApiUrl('/profile/upload-avatar'), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ avatar: base64 }),
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setProfile({ ...profile!, avatarUrl: data.avatarUrl })
-          console.log('[Account] Avatar updated successfully:', data.avatarUrl)
-        } else {
-          const error = await response.json()
-          console.error('[Account] Upload failed:', error)
-          alert('فشل تحميل الصورة: ' + (error.error || 'خطأ غير معروف'))
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          if (reader.result && typeof reader.result === "string") resolve(reader.result)
+          else reject(new Error("Failed to read image"))
         }
+        reader.onerror = () => reject(new Error("Failed to read file"))
+        reader.readAsDataURL(file)
+      })
+
+      const response = await fetch(buildApiUrl("/profile/upload-avatar"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ avatar: base64 }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setProfile((prev) => (prev ? { ...prev, avatarUrl: data.avatarUrl } : prev))
+      } else {
+        const err = await response.json().catch(() => ({}))
+        alert("فشل تحميل الصورة: " + (err.error || "خطأ غير معروف"))
       }
-      reader.readAsDataURL(file)
     } catch (error) {
-      console.error('[Account] Error uploading avatar:', error)
-      alert('حدث خطأ أثناء تحميل الصورة')
+      const msg = error instanceof Error ? error.message : "حدث خطأ أثناء تحميل الصورة"
+      alert(msg)
+    } finally {
+      e.target.value = ""
     }
   }
 

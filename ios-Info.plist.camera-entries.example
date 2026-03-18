@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Add these entries to your iOS app Info.plist for camera and photo library.
+  For Capacitor: ios/App/App/Info.plist
+  For Xcode: add the keys under Info tab or edit Info.plist.
+-->
+<plist version="1.0">
+<dict>
+  <key>NSCameraUsageDescription</key>
+  <string>نحتاج إلى الكاميرا لالتقاط صورة للملف الشخصي.</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>نحتاج إلى الصور لاختيار صورة للملف الشخصي.</string>
+</dict>
+</plist>
