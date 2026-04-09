@@ -135,15 +135,50 @@ export default function AccountPage() {
     }
   }
 
+  const compressImageToDataUrl = (file: File, maxSize = 1024, quality = 0.8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+
+      reader.onload = () => {
+        if (!reader.result || typeof reader.result !== "string") {
+          reject(new Error("Failed to read image"))
+          return
+        }
+
+        const image = new Image()
+
+        image.onload = () => {
+          const canvas = document.createElement("canvas")
+          const context = canvas.getContext("2d")
+
+          if (!context) {
+            reject(new Error("Failed to process image"))
+            return
+          }
+
+          const scale = Math.min(maxSize / image.width, maxSize / image.height, 1)
+          const width = Math.round(image.width * scale)
+          const height = Math.round(image.height * scale)
+
+          canvas.width = width
+          canvas.height = height
+          context.drawImage(image, 0, 0, width, height)
+
+          resolve(canvas.toDataURL("image/jpeg", quality))
+        }
+
+        image.onerror = () => reject(new Error("Failed to load image"))
+        image.src = reader.result
+      }
+
+      reader.onerror = () => reject(new Error("Failed to read file"))
+      reader.readAsDataURL(file)
+    })
+  }
+
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    if (file.size > 2 * 1024 * 1024) {
-      alert("حجم الصورة كبير جداً! الحد الأقصى 2MB")
-      e.target.value = ""
-      return
-    }
 
     if (!file.type.startsWith("image/")) {
       alert("يرجى اختيار صورة صالحة")
@@ -152,15 +187,7 @@ export default function AccountPage() {
     }
 
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          if (reader.result && typeof reader.result === "string") resolve(reader.result)
-          else reject(new Error("Failed to read image"))
-        }
-        reader.onerror = () => reject(new Error("Failed to read file"))
-        reader.readAsDataURL(file)
-      })
+      const base64 = await compressImageToDataUrl(file)
 
       const response = await fetch(buildApiUrl("/profile/upload-avatar"), {
         method: "POST",
