@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera"
 import { getCurrentUser, logout } from "@/lib/api-client"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { Button } from "@/components/ui/button"
@@ -211,6 +212,43 @@ export default function AccountPage() {
     }
   }
 
+  const handleAvatarClick = async () => {
+    try {
+      const image = await Camera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Photos,
+      })
+
+      if (!image.base64String) {
+        throw new Error("Failed to read image")
+      }
+
+      const response = await fetch(buildApiUrl("/profile/upload-avatar"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ avatar: image.base64String }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setProfile((prev) => (prev ? { ...prev, avatarUrl: data.avatarUrl } : prev))
+      } else {
+        const err = await response.json().catch(() => ({}))
+        alert("ÙØ´Ù„ ØªØ­Ù…ÙŠÙ„ Ø§Ù„ØµÙˆØ±Ø©: " + (err.error || "Ø®Ø·Ø£ ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ"))
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : ""
+      if (errorMessage.toLowerCase().includes("cancel")) {
+        return
+      }
+
+      alert(errorMessage || "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ­Ù…ÙŠÙ„ Ø§Ù„ØµÙˆØ±Ø©")
+    }
+  }
+
   const handleLogout = async () => {
     await logout()
     router.push('/')
@@ -255,19 +293,13 @@ export default function AccountPage() {
                 <span>{profile.fullName?.charAt(0) || "أ"}</span>
               )}
             </div>
-            <label
-              htmlFor="avatar-upload"
+            <button
+              type="button"
+              onClick={handleAvatarClick}
               className="absolute bottom-0 right-0 cursor-pointer rounded-full bg-white p-2 text-sky-600 shadow-lg transition hover:scale-110"
             >
               <Upload size={16} />
-              <input
-                id="avatar-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="hidden"
-              />
-            </label>
+            </button>
           </div>
           <h1 className="text-2xl font-bold">{profile.fullName || "المستخدم"}</h1>
           <p className="mt-1 flex items-center gap-2 text-sm text-white/85">
