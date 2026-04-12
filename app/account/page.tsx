@@ -17,7 +17,7 @@ import {
   LogOut,
   Edit,
   Save,
-  Camera,
+  Upload,
 } from "lucide-react"
 import { PageLoader } from "@/components/ui/preloader"
 import { buildApiUrl } from "@/lib/api-client"
@@ -259,7 +259,7 @@ export default function AccountPage() {
               htmlFor="avatar-upload"
               className="absolute bottom-0 right-0 cursor-pointer rounded-full bg-white p-2 text-sky-600 shadow-lg transition hover:scale-110"
             >
-              <Camera size={16} />
+              <Upload size={16} />
               <input
                 id="avatar-upload"
                 type="file"
