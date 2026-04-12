@@ -47,6 +47,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>نحتاج إلى موقعك لعرض خطط الاشتراك المناسبة في بلدك.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>نحتاج إلى الكاميرا لالتقاط صورة للملف الشخصي.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -71,6 +71,7 @@ export default function PlansPage() {
 
   useEffect(() => {
     let cancelled = false
+    let geolocationTimeout: ReturnType<typeof window.setTimeout> | null = null
 
     const run = async () => {
       const currentUser = await getCurrentUser()
@@ -95,8 +96,18 @@ export default function PlansPage() {
       }
 
       setLocationStatus("asking")
+      geolocationTimeout = window.setTimeout(() => {
+        if (cancelled) return
+        setCountry(null)
+        setLocationStatus("denied")
+        setLoading(false)
+      }, 5000)
       navigator.geolocation.getCurrentPosition(
         async (position) => {
+          if (geolocationTimeout) {
+            window.clearTimeout(geolocationTimeout)
+            geolocationTimeout = null
+          }
           if (cancelled) return
           const code = await reverseGeocode(position.coords.latitude, position.coords.longitude)
           if (cancelled) return
@@ -110,7 +121,12 @@ export default function PlansPage() {
           }
         },
         () => {
+          if (geolocationTimeout) {
+            window.clearTimeout(geolocationTimeout)
+            geolocationTimeout = null
+          }
           if (!cancelled) {
+            setCountry(null)
             setLocationStatus("denied")
             setLoading(false)
           }
@@ -122,16 +138,22 @@ export default function PlansPage() {
     run()
     return () => {
       cancelled = true
+      if (geolocationTimeout) {
+        window.clearTimeout(geolocationTimeout)
+      }
     }
   }, [router])
 
   useEffect(() => {
-    if (!userId || !country) return
+    if (!userId) return
 
     const fetchPlans = async () => {
       setLoading(true)
       try {
-        const url = country === "OTHER" ? buildApiUrl("/plans") : buildApiUrl(`/plans?country=${encodeURIComponent(country)}`)
+        const url =
+          !country || country === "OTHER"
+            ? buildApiUrl("/plans")
+            : buildApiUrl(`/plans?country=${encodeURIComponent(country)}`)
         const response = await fetch(url, { credentials: "include" })
         if (response.ok) {
           const data = await response.json()
@@ -202,7 +224,7 @@ export default function PlansPage() {
     }
   }
 
-  const showLocationGate = !country && (locationStatus === "asking" || locationStatus === "denied")
+  const showLocationGate = !country && locationStatus === "asking"
   const waitingForLocation = !country && locationStatus === "asking"
 
   const handleCountrySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
