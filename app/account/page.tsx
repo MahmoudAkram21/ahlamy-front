@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Camera, CameraResultType, CameraSource } from "@capacitor/camera"
+// import { Camera, CameraResultType, CameraSource } from "@capacitor/camera"
 import { getCurrentUser, logout } from "@/lib/api-client"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { Button } from "@/components/ui/button"
@@ -18,7 +18,7 @@ import {
   LogOut,
   Edit,
   Save,
-  Upload,
+  // Upload,
 } from "lucide-react"
 import { PageLoader } from "@/components/ui/preloader"
 import { buildApiUrl } from "@/lib/api-client"
@@ -136,118 +136,117 @@ export default function AccountPage() {
     }
   }
 
-  const compressImageToDataUrl = (file: File, maxSize = 1024, quality = 0.8): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
+  // const compressImageToDataUrl = (file: File, maxSize = 1024, quality = 0.8): Promise<string> => {
+  //   return new Promise((resolve, reject) => {
+  //     const reader = new FileReader()
 
-      reader.onload = () => {
-        if (!reader.result || typeof reader.result !== "string") {
-          reject(new Error("Failed to read image"))
-          return
-        }
+  //     reader.onload = () => {
+  //       if (!reader.result || typeof reader.result !== "string") {
+  //         reject(new Error("Failed to read image"))
+  //         return
+  //       }
 
-        const image = new Image()
+  //       const image = new Image()
 
-        image.onload = () => {
-          const canvas = document.createElement("canvas")
-          const context = canvas.getContext("2d")
+  //       image.onload = () => {
+  //         const canvas = document.createElement("canvas")
+  //         const context = canvas.getContext("2d")
 
-          if (!context) {
-            reject(new Error("Failed to process image"))
-            return
-          }
+  //         if (!context) {
+  //           reject(new Error("Failed to process image"))
+  //           return
+  //         }
 
-          const scale = Math.min(maxSize / image.width, maxSize / image.height, 1)
-          const width = Math.round(image.width * scale)
-          const height = Math.round(image.height * scale)
+  //         const scale = Math.min(maxSize / image.width, maxSize / image.height, 1)
+  //         const width = Math.round(image.width * scale)
+  //         const height = Math.round(image.height * scale)
 
-          canvas.width = width
-          canvas.height = height
-          context.drawImage(image, 0, 0, width, height)
+  //         canvas.width = width
+  //         canvas.height = height
+  //         context.drawImage(image, 0, 0, width, height)
 
-          resolve(canvas.toDataURL("image/jpeg", quality))
-        }
+  //         resolve(canvas.toDataURL("image/jpeg", quality))
+  //       }
 
-        image.onerror = () => reject(new Error("Failed to load image"))
-        image.src = reader.result
-      }
+  //       image.onerror = () => reject(new Error("Failed to load image"))
+  //       image.src = reader.result
+  //     }
 
-      reader.onerror = () => reject(new Error("Failed to read file"))
-      reader.readAsDataURL(file)
-    })
-  }
+  //     reader.onerror = () => reject(new Error("Failed to read file"))
+  //     reader.readAsDataURL(file)
+  //   })
+  // }
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  // const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0]
+  //   if (!file) return
 
-    if (!file.type.startsWith("image/")) {
-      alert("يرجى اختيار صورة صالحة")
-      e.target.value = ""
-      return
-    }
+  //   if (!file.type.startsWith("image/")) {
+  //     alert("يرجى اختيار صورة صالحة")
+  //     e.target.value = ""
+  //     return
+  //   }
 
-    try {
-      const base64 = await compressImageToDataUrl(file)
+  //   try {
+  //     const base64 = await compressImageToDataUrl(file)
 
-      const response = await fetch(buildApiUrl("/profile/upload-avatar"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ avatar: base64 }),
-      })
+  //     const response = await fetch(buildApiUrl("/profile/upload-avatar"), {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       credentials: "include",
+  //       body: JSON.stringify({ avatar: base64 }),
+  //     })
 
-      if (response.ok) {
-        const data = await response.json()
-        setProfile((prev) => (prev ? { ...prev, avatarUrl: data.avatarUrl } : prev))
-      } else {
-        const err = await response.json().catch(() => ({}))
-        alert("فشل تحميل الصورة: " + (err.error || "خطأ غير معروف"))
-      }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "حدث خطأ أثناء تحميل الصورة"
-      alert(msg)
-    } finally {
-      e.target.value = ""
-    }
-  }
+  //     if (response.ok) {
+  //       const data = await response.json()
+  //       setProfile((prev) => (prev ? { ...prev, avatarUrl: data.avatarUrl } : prev))
+  //     } else {
+  //       const err = await response.json().catch(() => ({}))
+  //       alert("فشل تحميل الصورة: " + (err.error || "خطأ غير معروف"))
+  //     }
+  //   } catch (error) {
+  //     const msg = error instanceof Error ? error.message : "حدث خطأ أثناء تحميل الصورة"
+  //     alert(msg)
+  //   } finally {
+  //     e.target.value = ""
+  //   }
+  // }
 
-  const handleAvatarClick = async () => {
-    try {
-      const image = await Camera.getPhoto({
-        quality: 80,
-        allowEditing: false,
-        resultType: CameraResultType.Base64,
-        source: CameraSource.Photos,
-      })
+  // const handleAvatarClick = async () => {
+  //   try {
+  //     const image = await Camera.getPhoto({
+  //       quality: 80,
+  //       allowEditing: false,
+  //       resultType: CameraResultType.Base64,
+  //       source: CameraSource.Photos,
+  //     })
 
-      if (!image.base64String) {
-        throw new Error("Failed to read image")
-      }
+  //     if (!image.base64String) {
+  //       throw new Error("Failed to read image")
+  //     }
 
-      const response = await fetch(buildApiUrl("/profile/upload-avatar"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ avatar: image.base64String }),
-      })
+  //     const response = await fetch(buildApiUrl("/profile/upload-avatar"), {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       credentials: "include",
+  //       body: JSON.stringify({ avatar: image.base64String }),
+  //     })
 
-      if (response.ok) {
-        const data = await response.json()
-        setProfile((prev) => (prev ? { ...prev, avatarUrl: data.avatarUrl } : prev))
-      } else {
-        const err = await response.json().catch(() => ({}))
-        alert("ÙØ´Ù„ ØªØ­Ù…ÙŠÙ„ Ø§Ù„ØµÙˆØ±Ø©: " + (err.error || "Ø®Ø·Ø£ ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ"))
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : ""
-      if (errorMessage.toLowerCase().includes("cancel")) {
-        return
-      }
+  //     if (response.ok) {
+  //       const data = await response.json()
+  //       setProfile((prev) => (prev ? { ...prev, avatarUrl: data.avatarUrl } : prev))
+  //     } else {
+  //       const err = await response.json().catch(() => ({}))
+  //       alert("فشل تحميل الصورة: " + (err.error || "خطأ غير معروف"))      }
+  //   } catch (error) {
+  //     const errorMessage = error instanceof Error ? error.message : ""
+  //     if (errorMessage.toLowerCase().includes("cancel")) {
+  //       return
+  //     }
 
-      alert(errorMessage || "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ­Ù…ÙŠÙ„ Ø§Ù„ØµÙˆØ±Ø©")
-    }
-  }
+  //     alert(errorMessage || "حدث خطأ أثناء تحميل الصورة")
+  //   }
+  // }
 
   const handleLogout = async () => {
     await logout()
@@ -285,7 +284,7 @@ export default function AccountPage() {
     <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
       <div className="bg-gradient-to-br from-sky-600 via-sky-500 to-amber-300 text-white">
         <div className="mx-auto flex max-w-2xl flex-col items-center px-4 py-9">
-          <div className="relative mb-4">
+          {/* <div className="relative mb-4">
             <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white/20 text-4xl font-bold shadow-xl backdrop-blur">
               {profile.avatarUrl ? (
                 <img src={profile.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
@@ -300,7 +299,12 @@ export default function AccountPage() {
             >
               <Upload size={16} />
             </button>
+          </div> */}
+          <div className="mb-4">
+          <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white/20 text-4xl font-bold shadow-xl backdrop-blur">
+            <span>{profile.fullName?.charAt(0) || "أ"}</span>
           </div>
+        </div>
           <h1 className="text-2xl font-bold">{profile.fullName || "المستخدم"}</h1>
           <p className="mt-1 flex items-center gap-2 text-sm text-white/85">
             <Briefcase size={16} />
@@ -355,10 +359,12 @@ export default function AccountPage() {
                     }).format(Number(activePlan.price))}
                   </span>
                 </div>
+                {activePlan.durationDays != null && (
                 <div className="flex items-center justify-between">
                   <span>المدة</span>
                   <span className="font-semibold text-slate-900">{activePlan.durationDays} يوم</span>
                 </div>
+                )}  
                 {profile.subscription?.expiresAt && (
                   <div className="flex items-center justify-between">
                     <span>ينتهي في</span>

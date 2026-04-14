@@ -71,7 +71,7 @@ export default function PlansPage() {
 
   useEffect(() => {
     let cancelled = false
-    let geolocationTimeout: ReturnType<typeof window.setTimeout> | null = null
+    let geolocationTimeout: number | null = null
 
     const run = async () => {
       const currentUser = await getCurrentUser()
@@ -101,7 +101,7 @@ export default function PlansPage() {
         setCountry(null)
         setLocationStatus("denied")
         setLoading(false)
-      }, 5000)
+      }, 4000)
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           if (geolocationTimeout) {
@@ -131,7 +131,7 @@ export default function PlansPage() {
             setLoading(false)
           }
         },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+        { enableHighAccuracy: false, timeout: 4000, maximumAge: 300000 }
       )
     }
 
@@ -224,7 +224,7 @@ export default function PlansPage() {
     }
   }
 
-  const showLocationGate = !country && locationStatus === "asking"
+  const showLocationGate = !country && (locationStatus === "asking" || locationStatus === "denied")
   const waitingForLocation = !country && locationStatus === "asking"
 
   const handleCountrySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
