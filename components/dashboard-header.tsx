@@ -73,7 +73,7 @@ export function DashboardHeader() {
               className="relative flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/60 bg-white/20 transition hover:bg-white/30"
               aria-label="الملف الشخصي"
             >
-              {profile?.avatarUrl ? (
+              {/* {profile?.avatarUrl ? (
                 <Image
                   src={profile.avatarUrl}
                   alt="صورة الحساب"
@@ -83,7 +83,8 @@ export function DashboardHeader() {
                 />
               ) : (
                 <span className="text-base font-semibold text-white">{initials}</span>
-              )}
+              )} */}
+              <span>{profile?.fullName?.charAt(0) || "أ"}</span>
               <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border border-white bg-emerald-300" />
             </button>
           </div>

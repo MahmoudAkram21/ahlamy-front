@@ -55,8 +55,8 @@ export function ProfileDropdown({ onClose }: ProfileDropdownProps) {
       className="fixed bg-card border border-border rounded-lg shadow-lg w-64 z-40"
       style={{
         top: "auto",
-        right: "1rem",
-        bottom: "calc(100% - 3.5rem)",
+        left: "17rem",
+        // bottom: "calc(100% - 3.5rem)",
         maxHeight: "80vh",
         overflowY: "auto",
       }}
