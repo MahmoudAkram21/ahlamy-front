@@ -14,6 +14,26 @@ export function DashboardHeader() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
+  const handleProfileToggle = () => {
+    setProfileOpen((prev) => {
+      const next = !prev
+      if (next) {
+        setNotificationsOpen(false)
+      }
+      return next
+    })
+  }
+
+  const handleNotificationsToggle = () => {
+    setNotificationsOpen((prev) => {
+      const next = !prev
+      if (next) {
+        setProfileOpen(false)
+      }
+      return next
+    })
+  }
+
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -38,7 +58,7 @@ export function DashboardHeader() {
              <div>
               {/* Profile */ }
             <button
-              onClick={() => setProfileOpen((prev) => !prev)}
+              onClick={handleProfileToggle}
               className="relative flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/60 bg-white/20 transition hover:bg-white/30"
               aria-label="الملف الشخصي"
             >
@@ -50,7 +70,7 @@ export function DashboardHeader() {
 
                 {/* Notifications */ }
               <button
-                onClick={() => setNotificationsOpen((prev) => !prev)}
+                onClick={handleNotificationsToggle}
                 className="relative rounded-full bg-white/10 p-2 transition hover:bg-white/20"
                 aria-label="الإشعارات"
               >
