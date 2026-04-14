@@ -76,7 +76,7 @@ export function NotificationsDropdown({ onClose }: NotificationsDropdownProps) {
   const unreadCount = notifications.filter((n) => !n.isRead).length
 
   return (
-    <div className="fixed right-4 top-24 z-[250] w-[calc(100vw-2rem)] max-w-sm">
+    <div className="absolute left-0 top-[calc(100%+0.75rem)] z-[250] w-[min(22rem,calc(100vw-2rem))]">
       <div className="overflow-hidden rounded-3xl border border-sky-100 bg-white/95 shadow-xl backdrop-blur">
         <div className="flex items-center justify-between bg-gradient-to-r from-sky-500 via-sky-400 to-amber-300 px-5 py-4 text-white">
           <div className="flex items-center gap-2">

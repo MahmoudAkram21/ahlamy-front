@@ -44,7 +44,7 @@ export function ProfileDropdown({ onClose }: ProfileDropdownProps) {
   }
 
   return (
-    <div className="absolute right-4 top-full z-50 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+    <div className="absolute left-0 top-[calc(100%+0.75rem)] z-[250] w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border bg-card shadow-lg">
       {loading ? (
         <div className="flex min-h-20 items-center px-4 py-4">
           <p className="text-sm text-muted-foreground">جاري التحميل...</p>

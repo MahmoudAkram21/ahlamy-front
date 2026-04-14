@@ -53,9 +53,9 @@ export function DashboardHeader() {
     <>
       <header className="sticky top-0 z-40 backdrop-blur-md">
         <div className="bg-gradient-to-r from-sky-500 via-sky-400 to-amber-200 text-white shadow-lg dark:from-sky-700 dark:via-sky-800 dark:to-amber-500">
-          <div className="mx-auto relative flex max-w-screen-lg items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-2">
-             <div>
+          <div className="mx-auto relative flex min-h-20 max-w-screen-lg items-center justify-center px-4 py-3">
+            <div className="absolute left-4 top-1/2 flex -translate-y-1/2 items-center gap-2">
+             <div className="relative">
               {/* Profile */ }
             <button
               onClick={handleProfileToggle}
@@ -68,6 +68,7 @@ export function DashboardHeader() {
             {profileOpen && <ProfileDropdown onClose={() => setProfileOpen(false)} />}
             </div>
 
+              <div className="relative">
                 {/* Notifications */ }
               <button
                 onClick={handleNotificationsToggle}
@@ -77,8 +78,10 @@ export function DashboardHeader() {
                 <Bell size={22} className="text-white" />
                 <span className="absolute -top-1 -right-1 h-2 w-2 animate-ping rounded-full bg-amber-300" />
               </button>
+              {notificationsOpen && <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />}
+              </div>
             </div>
-            <div className="flex flex-col items-center text-center">
+            <div className="flex flex-col items-center px-16 text-center sm:px-24">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
                   <Sun size={18} className="text-amber-200" />
@@ -92,6 +95,7 @@ export function DashboardHeader() {
 
         
 
+            <div className="absolute right-4 top-1/2 -translate-y-1/2">
              {/* navigation side menu*/ }
               <button
                 onClick={() => setMenuOpen(true)}
@@ -100,11 +104,10 @@ export function DashboardHeader() {
               >
                 <Menu size={22} />
               </button>
+            </div>
             
           </div>
         </div>
-
-        {notificationsOpen && <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />}
       </header>
 
       <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} profile={profile} />
