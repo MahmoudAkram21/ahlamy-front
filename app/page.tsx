@@ -145,7 +145,7 @@ export default function HomePage() {
             <div className="absolute bottom-0 right-6 w-40 h-40 rounded-full bg-amber-200 blur-3xl" />
           </div>
 
-          <div className="relative z-[260] flex items-center justify-between">
+          <div className="relative z-[320] flex items-center justify-between">
             <button
               className="p-2 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 transition hover:bg-white/25"
               onClick={() => setMenuOpen(true)}
