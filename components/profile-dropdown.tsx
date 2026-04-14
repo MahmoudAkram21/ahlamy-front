@@ -1,9 +1,10 @@
 "use client"
 
-import { LogOut, User, Edit } from "lucide-react"
+import { LogOut, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { getCurrentUser, logout } from "@/lib/api-client"
+
+import { getCurrentUser, logout, type Profile } from "@/lib/api-client"
 
 interface ProfileDropdownProps {
   onClose: () => void
@@ -11,7 +12,7 @@ interface ProfileDropdownProps {
 
 export function ProfileDropdown({ onClose }: ProfileDropdownProps) {
   const router = useRouter()
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -19,7 +20,7 @@ export function ProfileDropdown({ onClose }: ProfileDropdownProps) {
       try {
         const currentUser = await getCurrentUser()
 
-        if (currentUser) {
+        if (currentUser?.profile) {
           setProfile(currentUser.profile)
         }
       } catch (error) {
@@ -42,59 +43,50 @@ export function ProfileDropdown({ onClose }: ProfileDropdownProps) {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="fixed top-12 right-0 bg-card border border-border rounded-lg shadow-lg w-64 z-40 p-4">
-        <p className="text-muted-foreground text-sm">جاري التحميل...</p>
-      </div>
-    )
-  }
-
   return (
-    <div
-      className="fixed bg-card border border-border rounded-lg shadow-lg w-64 z-40"
-      style={{
-        top: "auto",
-        left: "17rem",
-        // bottom: "calc(100% - 3.5rem)",
-        maxHeight: "80vh",
-        overflowY: "auto",
-      }}
-    >
-      {/* Profile Info */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">
-            {profile?.fullName?.charAt(0) || "U"}
+    <div className="absolute right-4 top-full z-50 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+      {loading ? (
+        <div className="flex min-h-20 items-center px-4 py-4">
+          <p className="text-sm text-muted-foreground">جاري التحميل...</p>
+        </div>
+      ) : (
+        <div className="max-h-[calc(100dvh-5rem)] overflow-y-auto">
+          <div className="border-b border-border p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary font-bold text-white">
+                {profile?.fullName?.charAt(0) || "U"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h4 className="truncate text-sm font-semibold text-foreground">
+                  {profile?.fullName || "المستخدم"}
+                </h4>
+                <p className="truncate text-xs text-muted-foreground">{profile?.email}</p>
+              </div>
+            </div>
           </div>
-          <div className="flex-1">
-            <h4 className="font-semibold text-foreground text-sm">{profile?.fullName || "المستخدم"}</h4>
-            <p className="text-xs text-muted-foreground">{profile?.email}</p>
+
+          <div className="py-2">
+            <button
+              onClick={() => {
+                router.push("/account")
+                onClose()
+              }}
+              className="flex w-full items-center gap-3 px-4 py-2 text-right text-foreground transition-colors hover:bg-muted"
+            >
+              <User size={18} />
+              <span>حسابي</span>
+            </button>
+            <div className="my-2 border-t border-border" />
+            <button
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-3 px-4 py-2 text-right text-destructive transition-colors hover:bg-destructive/10"
+            >
+              <LogOut size={18} />
+              <span>تسجيل الخروج</span>
+            </button>
           </div>
         </div>
-      </div>
-
-      {/* Menu Items */}
-      <div className="py-2">
-        <button
-          onClick={() => {
-            router.push("/account")
-            onClose()
-          }}
-          className="w-full px-4 py-2 text-right flex items-center gap-3 hover:bg-muted transition-colors text-foreground"
-        >
-          <User size={18} />
-          <span>حسابي</span>
-        </button>
-        <div className="border-t border-border my-2" />
-        <button
-          onClick={handleSignOut}
-          className="w-full px-4 py-2 text-right flex items-center gap-3 hover:bg-destructive/10 transition-colors text-destructive"
-        >
-          <LogOut size={18} />
-          <span>تسجيل الخروج</span>
-        </button>
-      </div>
+      )}
     </div>
   )
 }

@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import Image from "next/image"
+import { useEffect, useState } from "react"
 import { Bell, Menu, Sun } from "lucide-react"
 
 import { NotificationsDropdown } from "./notifications-dropdown"
@@ -30,22 +29,26 @@ export function DashboardHeader() {
     loadProfile()
   }, [])
 
-  const initials = useMemo(() => profile?.fullName?.charAt(0) ?? "أ", [profile?.fullName])
-
   return (
     <>
       <header className="sticky top-0 z-40 backdrop-blur-md">
-        <div className="bg-gradient-to-r from-sky-500 via-sky-400 to-amber-200 dark:from-sky-700 dark:via-sky-800 dark:to-amber-500 text-white shadow-lg">
-          <div className="mx-auto flex items-center justify-between px-4 py-3 max-w-screen-lg">
+        <div className="bg-gradient-to-r from-sky-500 via-sky-400 to-amber-200 text-white shadow-lg dark:from-sky-700 dark:via-sky-800 dark:to-amber-500">
+          <div className="mx-auto relative flex max-w-screen-lg items-center justify-between px-4 py-3">
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setMenuOpen(true)}
-                className="rounded-full bg-white/10 p-2 transition hover:bg-white/20"
-                aria-label="القائمة الرئيسية"
-              >
-                <Menu size={22} />
-              </button>
+             <div>
+              {/* Profile */ }
+            <button
+              onClick={() => setProfileOpen((prev) => !prev)}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/60 bg-white/20 transition hover:bg-white/30"
+              aria-label="الملف الشخصي"
+            >
+              <span>{profile?.fullName?.charAt(0) || "أ"}</span>
+              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border border-white bg-emerald-300" />
+            </button>
+            {profileOpen && <ProfileDropdown onClose={() => setProfileOpen(false)} />}
+            </div>
 
+                {/* Notifications */ }
               <button
                 onClick={() => setNotificationsOpen((prev) => !prev)}
                 className="relative rounded-full bg-white/10 p-2 transition hover:bg-white/20"
@@ -55,7 +58,6 @@ export function DashboardHeader() {
                 <span className="absolute -top-1 -right-1 h-2 w-2 animate-ping rounded-full bg-amber-300" />
               </button>
             </div>
-
             <div className="flex flex-col items-center text-center">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
@@ -68,30 +70,21 @@ export function DashboardHeader() {
               </p>
             </div>
 
-            <button
-              onClick={() => setProfileOpen((prev) => !prev)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/60 bg-white/20 transition hover:bg-white/30"
-              aria-label="الملف الشخصي"
-            >
-              {/* {profile?.avatarUrl ? (
-                <Image
-                  src={profile.avatarUrl}
-                  alt="صورة الحساب"
-                  width={40}
-                  height={40}
-                  className="h-full w-full rounded-full object-cover"
-                />
-              ) : (
-                <span className="text-base font-semibold text-white">{initials}</span>
-              )} */}
-              <span>{profile?.fullName?.charAt(0) || "أ"}</span>
-              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border border-white bg-emerald-300" />
-            </button>
+        
+
+             {/* navigation side menu*/ }
+              <button
+                onClick={() => setMenuOpen(true)}
+                className="rounded-full bg-white/10 p-2 transition hover:bg-white/20"
+                aria-label="القائمة الرئيسية"
+              >
+                <Menu size={22} />
+              </button>
+            
           </div>
         </div>
 
         {notificationsOpen && <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />}
-        {profileOpen && <ProfileDropdown onClose={() => setProfileOpen(false)} />}
       </header>
 
       <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} profile={profile} />
