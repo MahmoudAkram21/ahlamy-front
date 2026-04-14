@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -14,7 +14,6 @@ import {
   Quote,
   RefreshCcw,
   Star,
-  User,
   X,
 } from "lucide-react"
 
@@ -132,7 +131,6 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", handleKey)
   }, [notificationsOpen])
 
-  const initials = useMemo(() => profile?.fullName?.charAt(0) ?? "أ", [profile?.fullName])
 
   if (loading) {
     return <PageLoader message="جاري تحميل الصفحة الرئيسية..." />
@@ -141,13 +139,13 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
       <header className="rounded-b-[2rem] bg-gradient-to-br from-sky-600 via-sky-500 to-amber-300 text-white shadow-xl">
-        <div className="relative px-4 pt-8 pb-10 overflow-hidden">
-          <div className="absolute inset-0 opacity-20">
+        <div className="relative overflow-visible px-4 pt-8 pb-10">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-b-[2rem] opacity-20">
             <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full bg-white blur-3xl" />
             <div className="absolute bottom-0 right-6 w-40 h-40 rounded-full bg-amber-200 blur-3xl" />
           </div>
 
-          <div className="relative z-10 flex items-center justify-between">
+          <div className="relative z-[260] flex items-center justify-between">
             <button
               className="p-2 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 transition hover:bg-white/25"
               onClick={() => setMenuOpen(true)}
@@ -160,14 +158,18 @@ export default function HomePage() {
               <Image src="/ahlamy 3.png" alt="Cloud" width={150} height={160} />
             </div>
 
+            <div className="relative">
             <button
-              className="relative p-2 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 transition hover:bg-white/25"
+              className="relative rounded-full border border-white/20 bg-white/15 p-2 backdrop-blur-sm transition hover:bg-white/25"
               onClick={() => setNotificationsOpen((prev) => !prev)}
               aria-label="الإشعارات"
             >
               <Bell size={22} />
               <span className="absolute -top-1 -left-1 h-2 w-2 rounded-full bg-amber-300 shadow animate-pulse" />
             </button>
+            {notificationsOpen && <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />}
+          </div>
+
           </div>
 
           <div className="relative z-10 mt-6 rounded-3xl border border-white/25 bg-white/15 p-4 backdrop-blur-lg shadow-lg">
@@ -344,8 +346,7 @@ export default function HomePage() {
       <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} profile={profile} />
       {notificationsOpen && (
         <>
-          <div className="fixed inset-0 z-[240]" onClick={() => setNotificationsOpen(false)} />
-          <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />
+          <div className="fixed inset-0 z-[290]" onClick={() => setNotificationsOpen(false)} />
         </>
       )}
     </div>

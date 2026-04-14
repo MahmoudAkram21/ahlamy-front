@@ -150,7 +150,7 @@ export function SideMenu({ open, onClose, profile }: SideMenuProps) {
 
   return (
     <div
-      className={`fixed inset-0 z-[200] transition-all duration-300 ${open ? "visible bg-slate-900/50" : "invisible bg-transparent"
+      className={`fixed inset-0 z-[400] transition-all duration-300 ${open ? "visible bg-slate-900/50" : "invisible bg-transparent"
         }`}
       onClick={onClose}
     >
