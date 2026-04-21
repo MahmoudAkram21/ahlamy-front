@@ -195,7 +195,7 @@ export default function DreamsPage() {
                 </Link>
               </p>
             )}
-            {filteredDreams.map((dream) => {
+            {/* {filteredDreams.map((dream) => {
               const statusInfo = getStatusBadge(dream.status);
               const isUnpaid = dream.status === "pending_payment";
 
@@ -263,7 +263,7 @@ export default function DreamsPage() {
                   </Card>
                 </Link>
               );
-            })}
+            })} */}
           </div>
         )}
       </main>

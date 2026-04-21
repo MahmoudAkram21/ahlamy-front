@@ -102,11 +102,11 @@ export function SideMenu({ open, onClose, profile }: SideMenuProps) {
         href: "/screens",
         icon: <Monitor size={20} />,
       },
-      {
-        label: "باقات احلامي ",
-        href: "/plans", 
-        icon: <CreditCard size={20} />,
-      },
+      // {
+      //   label: "باقات احلامي ",
+      //   href: "/plans", 
+      //   icon: <CreditCard size={20} />,
+      // },
       
     ]
 

@@ -138,7 +138,7 @@ export default function CommunityPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-sky-100 bg-white/95 p-6 text-center shadow-md">
+        {/* <section className="rounded-3xl border border-sky-100 bg-white/95 p-6 text-center shadow-md">
           <p className="text-sm text-slate-600">
             هل تريد مشاركة رؤياك وتفسيرها من معبّرين معتمدين؟
           </p>
@@ -149,7 +149,7 @@ export default function CommunityPage() {
             شارك رؤياك الآن
             <ChevronLeft size={18} />
           </Link>
-        </section>
+        </section> */}
       </main>
 
       <BottomNavigation />
