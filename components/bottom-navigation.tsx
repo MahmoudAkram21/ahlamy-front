@@ -42,7 +42,7 @@ export function BottomNavigation() {
 
   const navItems: NavItem[] = [
     { href: "/", label: "الرئيسية", icon: <Home size={22} /> },
-    { href: "/dreams", label: dreamsLabel, icon: dreamsIcon },
+    // { href: "/dreams", label: dreamsLabel, icon: dreamsIcon },
     { href: "/dashboard", label: "غرفه التحكم", icon: <LayoutDashboard size={22} /> },
     { href: "/good-news", label: "إشراقات", icon: <Sparkles size={22} /> },
     { href: "/account", label: "حسابي", icon: <User size={22} /> },
