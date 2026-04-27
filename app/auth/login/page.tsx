@@ -35,7 +35,7 @@ export default function LoginPage() {
       console.log("[Auth] Login successful:", result.user.id)
       
       // Redirect immediately - cookie should be set by the API route
-      const redirect = searchParams.get('redirect') || '/dashboard'
+      const redirect = searchParams.get('redirect') || '/'
       window.location.href = redirect
     } catch (err) {
       console.log("[Auth] Login exception:", err)
