@@ -14,6 +14,9 @@ interface PageContent {
   isPublished: boolean
 }
 
+
+
+
 export default function AboutPage() {
   const [page, setPage] = useState<PageContent | null>(null)
   const [loading, setLoading] = useState(true)
