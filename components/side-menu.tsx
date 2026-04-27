@@ -82,11 +82,11 @@ export function SideMenu({ open, onClose, profile }: SideMenuProps) {
         href: "/terms",
         icon: <ScrollText size={20} />,
       },
-      {
-        label: "البريد الإلكتروني",
-        href: "mailto:support@ahlami.app",
-        icon: <Mail size={20} />,
-      },
+      // {
+      //   label: "البريد الإلكتروني",
+      //   href: "mailto:support@ahlami.app",
+      //   icon: <Mail size={20} />,
+      // },
       {
         label: "خدمة العملاء",
         href: "/support",

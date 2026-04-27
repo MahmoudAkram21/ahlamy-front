@@ -5,6 +5,7 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { buildApiUrl } from "@/lib/api-client"
 import { PageLoader } from "@/components/ui/preloader"
+import { MessageCircle, Phone } from "lucide-react"
 
 interface PageContent {
   id: string
@@ -13,6 +14,9 @@ interface PageContent {
   content: string
   isPublished: boolean
 }
+
+const supportPhone = "+201007708656"
+const supportWhatsapp = "201007708656"
 
 export default function SupportPage() {
   const [page, setPage] = useState<PageContent | null>(null)
@@ -59,6 +63,32 @@ export default function SupportPage() {
               style={{ direction: 'rtl' }}
               dangerouslySetInnerHTML={{ __html: page.content }}
             />
+
+            <div className="mt-8 rounded-2xl border border-sky-100 bg-sky-50/70 p-5 text-right">
+              <h2 className="text-xl font-bold text-slate-900">للتواصل معنا</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                يمكنك التواصل مع فريق الدعم على الرقم التالي:
+              </p>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <a
+                  href={`tel:${supportPhone}`}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100"
+                  dir="ltr"
+                >
+                  <Phone size={18} />
+                  {supportPhone}
+                </a>
+                <a
+                  href={`https://wa.me/${supportWhatsapp}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                >
+                  <MessageCircle size={18} />
+                  واتساب
+                </a>
+              </div>
+            </div>
 
             <style jsx>{`
               .cms-content {

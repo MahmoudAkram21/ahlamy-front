@@ -14,6 +14,25 @@ interface PageContent {
   isPublished: boolean
 }
 
+const defaultTermsContent = `
+  <p>يرجى قراءة هذه الشروط بعناية قبل استخدام تطبيق أحلامي. باستخدامك للتطبيق فإنك توافق على الالتزام بهذه الشروط.</p>
+  <h2><br>الحسابات</h2>
+  <p>يتحمل المستخدم مسؤولية الحفاظ على سرية بيانات الدخول الخاصة به، كما يجب تقديم بيانات صحيحة عند إنشاء الحساب أو تحديثه.</p>
+  <h2><br>طلبات التفسير</h2>
+  <p>تفسيرات الرؤى المقدمة عبر التطبيق اجتهادية ولا تعد وعداً بحدوث أمر معين أو بديلاً عن الاستشارة الشرعية أو الطبية أو القانونية المتخصصة.</p>
+  <h2><br>التواصل والدعم</h2>
+  <p>لأي استفسار أو طلب مساعدة، يمكن التواصل مع فريق الدعم من خلال صفحة الدعم والمساعدة داخل التطبيق.</p>
+  <h2><br>تحديث الشروط</h2>
+  <p>يحق لإدارة التطبيق تحديث هذه الشروط عند الحاجة، ويعد استمرار استخدام التطبيق بعد التحديث موافقة على الشروط المعدلة.</p>
+`
+
+function hasUsableTermsContent(content?: string | null) {
+  if (!content) return false
+
+  const text = content.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim()
+  return text.length >= 120 && content.includes("<h2")
+}
+
 export default function TermsPage() {
   const [page, setPage] = useState<PageContent | null>(null)
   const [loading, setLoading] = useState(true)
@@ -43,21 +62,22 @@ export default function TermsPage() {
     return <PageLoader message="جاري التحميل..." />
   }
 
+  const termsContent = hasUsableTermsContent(page?.content) ? page!.content : defaultTermsContent
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
       <DashboardHeader />
 
       <main className="mx-auto mt-6 w-full max-w-4xl px-4">
-        {page ? (
           <div className="rounded-3xl border border-sky-100 bg-white/95 p-8 shadow-lg backdrop-blur">
-            {page.title && (
+            {page?.title && (
               <h1 className="mb-6 text-3xl font-bold text-slate-900">{page.title}</h1>
             )}
 
             <div
               className="cms-content text-right leading-relaxed text-slate-700"
               style={{ direction: 'rtl' }}
-              dangerouslySetInnerHTML={{ __html: page.content }}
+              dangerouslySetInnerHTML={{ __html: termsContent }}
             />
 
             <style jsx>{`
@@ -101,11 +121,6 @@ export default function TermsPage() {
               }
             `}</style>
           </div>
-        ) : (
-          <div className="rounded-3xl border border-sky-100 bg-white/95 p-12 text-center shadow-lg">
-            <p className="text-slate-600">المحتوى غير متوفر حالياً</p>
-          </div>
-        )}
       </main>
 
       <BottomNavigation />
