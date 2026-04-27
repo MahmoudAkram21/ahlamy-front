@@ -14,6 +14,7 @@ import {
   Quote,
   RefreshCcw,
   Star,
+  User,
   X,
 } from "lucide-react"
 
@@ -23,6 +24,7 @@ import { PageLoader } from "@/components/ui/preloader"
 import { getCurrentUser, type Profile } from "@/lib/api-client"
 import { SideMenu } from "@/components/side-menu"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
+import { ProfileDropdown } from "@/components/profile-dropdown"
 
 interface QuickLink {
   title: string
@@ -95,6 +97,7 @@ export default function HomePage() {
   const [fabOpen, setFabOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   useEffect(() => {
     const checkUser = async () => {
@@ -131,6 +134,26 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", handleKey)
   }, [notificationsOpen])
 
+  const handleProfileToggle = () => {
+    setProfileOpen((prev) => {
+      const next = !prev
+      if (next) {
+        setNotificationsOpen(false)
+      }
+      return next
+    })
+  }
+
+  const handleNotificationsToggle = () => {
+    setNotificationsOpen((prev) => {
+      const next = !prev
+      if (next) {
+        setProfileOpen(false)
+      }
+      return next
+    })
+  }
+
 
   if (loading) {
     return <PageLoader message="جاري تحميل الصفحة الرئيسية..." />
@@ -158,10 +181,26 @@ export default function HomePage() {
               <Image src="/ahlamy 3.png" alt="Cloud" width={150} height={160} />
             </div>
 
-            <div className="relative">
+            <div className="relative flex items-center gap-2">
+              {profile ? (
+              <div className="relative">
+                <button
+                  className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/15 backdrop-blur-sm transition hover:bg-white/25"
+                  onClick={handleProfileToggle}
+                  aria-label="Profile"
+                >
+                  {profile.fullName ? (
+                    <span className="text-sm font-semibold">{profile.fullName.charAt(0)}</span>
+                  ) : (
+                    <User size={20} />
+                  )}
+                </button>
+                {profileOpen && <ProfileDropdown onClose={() => setProfileOpen(false)} />}
+              </div>
+              ) : null}
             <button
               className="relative rounded-full border border-white/20 bg-white/15 p-2 backdrop-blur-sm transition hover:bg-white/25"
-              onClick={() => setNotificationsOpen((prev) => !prev)}
+              onClick={handleNotificationsToggle}
               aria-label="الإشعارات"
             >
               <Bell size={22} />

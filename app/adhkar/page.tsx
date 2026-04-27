@@ -17,7 +17,7 @@ export default function AdhkarPage() {
         title="الأذكار والأدعية"
         subtitle="ذكّر قلبك وأحيِ يومك بأذكار مستوحاة من السنة الصحيحة."
         ctaLabel="تحميل حصن المسلم PDF"
-        ctaHref="https://islamhouse.com/ar/books/209437/"
+        // ctaHref="https://islamhouse.com/ar/books/209437/"
       >
         <section className="space-y-6 text-right">
           <div className="rounded-2xl bg-emerald-50/70 p-5">
@@ -27,7 +27,7 @@ export default function AdhkarPage() {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          {/* <div className="grid gap-4 md:grid-cols-3">
             {adhkarCategories.map((item) => (
               <div key={item.title} className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
                 <h3 className="text-base font-semibold text-slate-900">{item.title}</h3>
@@ -42,7 +42,7 @@ export default function AdhkarPage() {
                 </Link>
               </div>
             ))}
-          </div>
+          </div> */}
 
           <div className="rounded-2xl border border-sky-100 bg-white/90 p-5">
             <h3 className="text-base font-semibold text-slate-900">أدعية جامعة</h3>
