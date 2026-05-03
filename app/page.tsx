@@ -347,7 +347,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* <div className="pointer-events-none fixed inset-x-0 bottom-24 flex justify-center">
+      <div className="pointer-events-none fixed inset-x-0 bottom-24 flex justify-center">
         <div className="pointer-events-auto flex flex-col items-center gap-3">
           {fabOpen && (
             <div className="flex flex-col items-center gap-2 animate-in fade-in zoom-in duration-200">
@@ -379,7 +379,7 @@ export default function HomePage() {
             {fabOpen ? <X size={28} /> : <Plus size={28} />}
           </button>
         </div>
-      </div> */}
+      </div>
 
       <BottomNavigation />
       <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} profile={profile} />
