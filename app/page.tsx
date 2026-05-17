@@ -155,7 +155,7 @@ export default function HomePage() {
           quote: review.content,
           rating: review.rating,
         }))
-        setVisibleTestimonials(reviews.slice(0, 2))
+        setVisibleTestimonials(reviews)
       } catch (error) {
         console.error("[Home] Error loading featured reviews:", error)
       }

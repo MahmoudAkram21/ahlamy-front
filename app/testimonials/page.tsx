@@ -61,9 +61,9 @@ export default function TestimonialsPage() {
   const [visibleTestimonials, setVisibleTestimonials] = useState<Testimonial[]>([])
 
   useEffect(() => {
-    const loadFeaturedReviews = async () => {
+    const loadPublishedReviews = async () => {
       try {
-        const response = await fetch(buildApiUrl("/reviews/featured"), {
+        const response = await fetch(buildApiUrl("/reviews"), {
           cache: "no-store",
         })
         if (!response.ok) return
@@ -76,10 +76,10 @@ export default function TestimonialsPage() {
         }))
         setVisibleTestimonials(reviews)
       } catch (error) {
-        console.error("[Testimonials] Error loading featured reviews:", error)
+        console.error("[Testimonials] Error loading published reviews:", error)
       }
     }
-    loadFeaturedReviews()
+    loadPublishedReviews()
   }, [])
 
   return (
