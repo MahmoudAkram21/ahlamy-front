@@ -36,6 +36,8 @@ export default function AdminSetupPage() {
           password,
           fullName,
           role: 'admin',
+          city: 'Cairo',
+          countryCode: 'EG',
         }),
       })
 

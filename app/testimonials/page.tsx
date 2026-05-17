@@ -2,11 +2,13 @@
 
 import { ChevronLeft, Heart, Quote, Star } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { Card } from "@/components/ui/card"
+import { buildApiUrl } from "@/lib/api-client"
 
 interface Testimonial {
-  id: number
+  id: number | string
   name: string
   quote: string
   rating: number
@@ -56,6 +58,30 @@ function Stars({ count }: { count: number }) {
 }
 
 export default function TestimonialsPage() {
+  const [visibleTestimonials, setVisibleTestimonials] = useState<Testimonial[]>([])
+
+  useEffect(() => {
+    const loadFeaturedReviews = async () => {
+      try {
+        const response = await fetch(buildApiUrl("/reviews/featured"), {
+          cache: "no-store",
+        })
+        if (!response.ok) return
+        const data = await response.json()
+        const reviews = (data.reviews || []).map((review: { id: string; reviewerName: string; content: string; rating: number }) => ({
+          id: review.id,
+          name: review.reviewerName,
+          quote: review.content,
+          rating: review.rating,
+        }))
+        setVisibleTestimonials(reviews)
+      } catch (error) {
+        console.error("[Testimonials] Error loading featured reviews:", error)
+      }
+    }
+    loadFeaturedReviews()
+  }, [])
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">
       <header className="rounded-b-[2rem] bg-gradient-to-br from-sky-600 via-sky-500 to-amber-300 px-4 py-8 text-center text-white shadow-xl">
@@ -77,7 +103,7 @@ export default function TestimonialsPage() {
 
       <main className="mx-auto mt-6 max-w-3xl space-y-6 px-4">
         <div className="grid gap-4 md:grid-cols-2">
-          {testimonials.map((item) => (
+          {visibleTestimonials.map((item) => (
             <Card
               key={item.id}
               className="rounded-2xl border border-sky-100 bg-white/95 p-5 shadow-md"
@@ -93,6 +119,11 @@ export default function TestimonialsPage() {
               </div>
             </Card>
           ))}
+          {visibleTestimonials.length === 0 ? (
+            <Card className="rounded-2xl border border-sky-100 bg-white/95 p-5 text-center text-sm text-slate-500 shadow-md md:col-span-2">
+              لا توجد تقييمات مميزة حالياً.
+            </Card>
+          ) : null}
         </div>
 
         <section className="rounded-3xl border border-sky-100 bg-white/95 p-6 text-center shadow-md">

@@ -8,28 +8,9 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { Check, MapPin } from "lucide-react"
 import { buildApiUrl } from "@/lib/api-client"
 import { PageLoader } from "@/components/ui/preloader"
+import { resolveEgyptPlanRegion } from "@/lib/location"
 
 const PLANS_COUNTRY_KEY = "plans_country"
-
-const COUNTRY_OPTIONS: { code: string; label: string }[] = [
-  { code: "EG", label: "مصر" },
-  { code: "SA", label: "السعودية" },
-  { code: "AE", label: "الإمارات" },
-  { code: "KW", label: "الكويت" },
-  { code: "QA", label: "قطر" },
-  { code: "BH", label: "البحرين" },
-  { code: "OM", label: "عُمان" },
-  { code: "JO", label: "الأردن" },
-  { code: "LB", label: "لبنان" },
-  { code: "SY", label: "سوريا" },
-  { code: "IQ", label: "العراق" },
-  { code: "YE", label: "اليمن" },
-  { code: "PS", label: "فلسطين" },
-  { code: "MA", label: "المغرب" },
-  { code: "DZ", label: "الجزائر" },
-  { code: "TN", label: "تونس" },
-  { code: "OTHER", label: "دولة أخرى (عرض كل الخطط)" },
-]
 
 interface Plan {
   id: string
@@ -40,19 +21,6 @@ interface Plan {
   letterQuota?: number | null
   features?: string[] | null
   isActive: boolean
-}
-
-async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=ar`
-    )
-    if (!res.ok) return null
-    const data = await res.json()
-    return data?.countryCode ?? null
-  } catch {
-    return null
-  }
 }
 
 export default function PlansPage() {
@@ -71,7 +39,6 @@ export default function PlansPage() {
 
   useEffect(() => {
     let cancelled = false
-    let geolocationTimeout: number | null = null
 
     const run = async () => {
       const currentUser = await getCurrentUser()
@@ -84,63 +51,35 @@ export default function PlansPage() {
 
       const savedCountry = sessionStorage.getItem(PLANS_COUNTRY_KEY)
       if (savedCountry) {
-        setCountry(savedCountry)
+        const savedRegion = savedCountry === "EG" ? "EG" : "OTHER"
+        sessionStorage.setItem(PLANS_COUNTRY_KEY, savedRegion)
+        setCountry(savedRegion)
         setLocationStatus("ready")
         return
       }
 
-      if (!navigator.geolocation) {
-        setLocationStatus("denied")
-        setLoading(false)
-        return
-      }
-
       setLocationStatus("asking")
-      geolocationTimeout = window.setTimeout(() => {
-        if (cancelled) return
+      const planRegion = await resolveEgyptPlanRegion(currentUser.profile, {
+        enableHighAccuracy: false,
+        timeout: 4000,
+        maximumAge: 300000,
+      })
+      if (cancelled) return
+
+      if (planRegion) {
+        sessionStorage.setItem(PLANS_COUNTRY_KEY, planRegion)
+        setCountry(planRegion)
+        setLocationStatus("ready")
+      } else {
         setCountry(null)
         setLocationStatus("denied")
         setLoading(false)
-      }, 4000)
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          if (geolocationTimeout) {
-            window.clearTimeout(geolocationTimeout)
-            geolocationTimeout = null
-          }
-          if (cancelled) return
-          const code = await reverseGeocode(position.coords.latitude, position.coords.longitude)
-          if (cancelled) return
-          if (code) {
-            sessionStorage.setItem(PLANS_COUNTRY_KEY, code)
-            setCountry(code)
-            setLocationStatus("ready")
-          } else {
-            setLocationStatus("denied")
-            setLoading(false)
-          }
-        },
-        () => {
-          if (geolocationTimeout) {
-            window.clearTimeout(geolocationTimeout)
-            geolocationTimeout = null
-          }
-          if (!cancelled) {
-            setCountry(null)
-            setLocationStatus("denied")
-            setLoading(false)
-          }
-        },
-        { enableHighAccuracy: false, timeout: 4000, maximumAge: 300000 }
-      )
+      }
     }
 
     run()
     return () => {
       cancelled = true
-      if (geolocationTimeout) {
-        window.clearTimeout(geolocationTimeout)
-      }
     }
   }, [router])
 
@@ -151,7 +90,7 @@ export default function PlansPage() {
       setLoading(true)
       try {
         const url =
-          !country || country === "OTHER"
+          !country
             ? buildApiUrl("/plans")
             : buildApiUrl(`/plans?country=${encodeURIComponent(country)}`)
         const response = await fetch(url, { credentials: "include" })
@@ -261,13 +200,10 @@ export default function PlansPage() {
                 defaultValue=""
               >
                 <option value="" disabled>
-                  اختر البلد
+                  اختر الموقع
                 </option>
-                {COUNTRY_OPTIONS.map((opt) => (
-                  <option key={opt.code} value={opt.code}>
-                    {opt.label}
-                  </option>
-                ))}
+                <option value="EG">داخل مصر</option>
+                <option value="OTHER">خارج مصر</option>
               </select>
             )}
             {waitingForLocation && (

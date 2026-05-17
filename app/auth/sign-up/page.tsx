@@ -8,12 +8,15 @@ import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
+import { COUNTRY_OPTIONS } from "@/lib/countries"
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [fullName, setFullName] = useState("")
   const [role, setRole] = useState<"dreamer" | "interpreter">("dreamer")
+  const [city, setCity] = useState("")
+  const [countryCode, setCountryCode] = useState("EG")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -26,7 +29,7 @@ export default function SignUpPage() {
     try {
       console.log("[Auth] Attempting registration:", email)
 
-      const result = await register(email, password, fullName, role)
+      const result = await register(email, password, fullName, role, city, countryCode)
 
       if (!result) {
         console.log("[Auth] Registration failed")
@@ -95,6 +98,34 @@ export default function SignUpPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">الدولة</label>
+              <Select value={countryCode} onValueChange={setCountryCode} disabled={loading}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COUNTRY_OPTIONS.filter((country) => country.code !== "OTHER").map((country) => (
+                    <SelectItem key={country.code} value={country.code}>
+                      {country.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">المدينة</label>
+              <Input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Cairo"
                 required
                 disabled={loading}
               />

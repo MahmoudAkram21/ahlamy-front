@@ -62,7 +62,7 @@ export default function TermsPage() {
     return <PageLoader message="جاري التحميل..." />
   }
 
-  const termsContent = hasUsableTermsContent(page?.content) ? page!.content : defaultTermsContent
+  const termsContent = page?.content || defaultTermsContent
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-amber-50 pb-28">

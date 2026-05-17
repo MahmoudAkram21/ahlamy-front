@@ -1,24 +1,18 @@
 /**
  * Centralized API Client for Mubasharat Frontend
- * Communicates with standalone backend server on port 5000
+ * Communicates with the standalone backend through same-origin Next.js API routes.
  */
+
+import { getSocketBaseUrl } from "./runtime-urls";
 
 const API_BASE_URL = "/api";
-  // process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
 
 /**
- * Backend origin for WebSocket (Socket.io). Set NEXT_PUBLIC_SOCKET_URL in production
- * to your backend URL (e.g. https://api.example.com). Defaults to http://localhost:5000 for dev.
+ * Backend origin for WebSocket (Socket.io). This is derived from the frontend env target
+ * unless NEXT_PUBLIC_SOCKET_URL is set explicitly.
  */
 export function getSocketServerUrl(): string {
-  if (process.env.NEXT_PUBLIC_SOCKET_URL) {
-    return process.env.NEXT_PUBLIC_SOCKET_URL;
-  }
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (apiUrl && (apiUrl.startsWith("http://") || apiUrl.startsWith("https://"))) {
-    return apiUrl.replace(/\/api\/?$/, "") || apiUrl;
-  }
-  return "http://localhost:5000";
+  return getSocketBaseUrl();
 }
 
 // ============================================
@@ -44,6 +38,8 @@ export interface Profile {
   role: string;
   avatarUrl: string | null;
   bio: string | null;
+  city: string;
+  countryCode: string;
   isAvailable: boolean;
   totalInterpretations: number;
   rating: string;
@@ -168,6 +164,8 @@ export const authApi = {
     password: string;
     fullName: string;
     role: "dreamer" | "interpreter";
+    city: string;
+    countryCode: string;
   }) =>
     apiFetch("/auth/register", {
       method: "POST",
@@ -216,13 +214,15 @@ export async function register(
   email: string,
   password: string,
   fullName: string,
-  role: "dreamer" | "interpreter" = "dreamer"
+  role: "dreamer" | "interpreter",
+  city: string,
+  countryCode: string
 ): Promise<{ user: User; profile: Profile } | null> {
   try {
     // Use Next.js API route for cookie handling
     return await apiFetch("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, password, fullName, role }),
+      body: JSON.stringify({ email, password, fullName, role, city, countryCode }),
     });
   } catch (error) {
     console.error("[Auth] Registration error:", error);
@@ -273,7 +273,7 @@ export async function isAuthenticated(): Promise<boolean> {
 // ============================================
 
 export const profileApi = {
-  update: (data: { fullName?: string; bio?: string }) =>
+  update: (data: { fullName?: string; bio?: string; city?: string; countryCode?: string }) =>
     apiFetch("/profile/update", {
       method: "PATCH",
       body: JSON.stringify(data),
@@ -437,6 +437,9 @@ export const chatApi = {
 
 export const notificationsApi = {
   getAll: () => apiFetch("/notifications"),
+  getCount: () => apiFetch<{ unreadCount: number }>("/notifications/count"),
+  markRead: (id: string) => apiFetch(`/notifications/${id}/read`, { method: "PATCH" }),
+  markAllRead: () => apiFetch<{ updatedCount: number }>("/notifications/read-all", { method: "PATCH" }),
 };
 
 // ============================================

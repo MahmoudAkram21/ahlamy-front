@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendApiBaseUrl } from "@/lib/runtime-urls";
 
-// Get backend URL - remove /api suffix if present to avoid double /api/api/
-const getBackendUrl = () => {
-  const url = process.env.NEXT_PUBLIC_API_URL || "https://b-ahlamy.developteam.site/api";
-  // If URL already ends with /api, use it as-is, otherwise add /api
-  return url.endsWith("/api") ? url : `${url}/api`;
-};
-
-const API_BASE_URL = getBackendUrl();
+const API_BASE_URL = getBackendApiBaseUrl();
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, fullName, role } = body;
+    const { email, password, fullName, role, city, countryCode } = body;
 
     // Prepare headers
     const headers: HeadersInit = {
@@ -29,7 +23,7 @@ export async function POST(request: NextRequest) {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ email, password, fullName, role }),
+      body: JSON.stringify({ email, password, fullName, role, city, countryCode }),
     });
 
     if (!response.ok) {

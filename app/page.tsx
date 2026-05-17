@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -21,10 +21,12 @@ import {
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { Card } from "@/components/ui/card"
 import { PageLoader } from "@/components/ui/preloader"
-import { getCurrentUser, type Profile } from "@/lib/api-client"
+import { buildApiUrl, getCurrentUser, type Profile } from "@/lib/api-client"
 import { SideMenu } from "@/components/side-menu"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
 import { ProfileDropdown } from "@/components/profile-dropdown"
+import { getPrayerWidgetData, type PrayerWidgetDisplay } from "@/lib/prayer-times"
+import { useNotificationCount } from "@/lib/use-notification-count"
 
 interface QuickLink {
   title: string
@@ -34,16 +36,22 @@ interface QuickLink {
 }
 
 interface Testimonial {
-  id: number
+  id: number | string
   name: string
   quote: string
   rating: number
 }
 
 interface CommunityDream {
-  id: number
+  id: number | string
   date: string
   preview: string
+}
+
+interface PrayerWidgetState extends PrayerWidgetDisplay {
+  loading: boolean
+  refreshing: boolean
+  error: string | null
 }
 
 const quickLinks: QuickLink[] = [
@@ -98,6 +106,23 @@ export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [visibleTestimonials, setVisibleTestimonials] = useState<Testimonial[]>([])
+  const [visibleCommunityDreams, setVisibleCommunityDreams] = useState<CommunityDream[]>([])
+  const { count: notificationCount, setCount: setNotificationCount, refresh: refreshNotificationCount } = useNotificationCount(Boolean(profile))
+  const [prayerWidget, setPrayerWidget] = useState<PrayerWidgetState>({
+    loading: true,
+    refreshing: false,
+    error: null,
+    hijriDate: "",
+    gregorianDate: "",
+    nextPrayerName: "",
+    nextPrayerTime: "",
+  })
+
+  const handleNotificationsRead = useCallback(() => {
+    setNotificationCount(0)
+    refreshNotificationCount()
+  }, [refreshNotificationCount, setNotificationCount])
 
   useEffect(() => {
     const checkUser = async () => {
@@ -115,6 +140,81 @@ export default function HomePage() {
 
     checkUser()
   }, [])
+
+  useEffect(() => {
+    const loadFeaturedReviews = async () => {
+      try {
+        const response = await fetch(buildApiUrl("/reviews/featured"), {
+          cache: "no-store",
+        })
+        if (!response.ok) return
+        const data = await response.json()
+        const reviews = (data.reviews || []).map((review: { id: string; reviewerName: string; content: string; rating: number }) => ({
+          id: review.id,
+          name: review.reviewerName,
+          quote: review.content,
+          rating: review.rating,
+        }))
+        setVisibleTestimonials(reviews.slice(0, 2))
+      } catch (error) {
+        console.error("[Home] Error loading featured reviews:", error)
+      }
+    }
+    loadFeaturedReviews()
+  }, [])
+
+  useEffect(() => {
+    const loadFeaturedDreams = async () => {
+      try {
+        const response = await fetch(buildApiUrl("/dreams/featured"), {
+          cache: "no-store",
+        })
+        if (!response.ok) return
+        const data = await response.json()
+        const dreams = (data.dreams || []).map((dream: { id: string; preview: string; createdAt?: string; featuredAt?: string | null }) => ({
+          id: dream.id,
+          date: new Date(dream.featuredAt || dream.createdAt || Date.now()).toLocaleDateString("ar-EG"),
+          preview: dream.preview,
+        }))
+        setVisibleCommunityDreams(dreams)
+      } catch (error) {
+        console.error("[Home] Error loading featured dreams:", error)
+      }
+    }
+    loadFeaturedDreams()
+  }, [])
+
+  const updatePrayerWidget = async (forceRefresh = false, profileOverride = profile) => {
+    setPrayerWidget((prev) => ({
+      ...prev,
+      loading: !prev.nextPrayerTime,
+      refreshing: forceRefresh,
+      error: null,
+    }))
+
+    try {
+      const nextPrayer = await getPrayerWidgetData(profileOverride, forceRefresh)
+      setPrayerWidget({
+        loading: false,
+        refreshing: false,
+        error: null,
+        ...nextPrayer,
+      })
+    } catch (error) {
+      console.error("[Home] Error loading prayer times:", error)
+      setPrayerWidget((prev) => ({
+        ...prev,
+        loading: false,
+        refreshing: false,
+        error: "تعذر تحميل مواقيت الصلاة. حاول التحديث لاحقًا.",
+      }))
+    }
+  }
+
+  useEffect(() => {
+    if (loading) return
+    updatePrayerWidget()
+  }, [loading, profile])
 
   useEffect(() => {
     if (!fabOpen) return
@@ -204,9 +304,18 @@ export default function HomePage() {
               aria-label="الإشعارات"
             >
               <Bell size={22} />
-              <span className="absolute -top-1 -left-1 h-2 w-2 rounded-full bg-amber-300 shadow animate-pulse" />
+              {notificationCount > 0 ? (
+                <span className="absolute -top-2 -left-2 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-amber-300 px-1 text-[10px] font-bold text-slate-900 shadow">
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </span>
+              ) : null}
             </button>
-            {notificationsOpen && <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />}
+            {notificationsOpen && (
+              <NotificationsDropdown
+                onClose={() => setNotificationsOpen(false)}
+                onReadStateChange={handleNotificationsRead}
+              />
+            )}
           </div>
 
           </div>
@@ -219,24 +328,30 @@ export default function HomePage() {
               </div>
               <button
                 type="button"
-                onClick={() => router.push("/prayer-times")}
-                className="flex items-center gap-1 text-xs text-white/80 hover:underline"
+                onClick={() => updatePrayerWidget(true)}
+                disabled={prayerWidget.refreshing}
+                className="flex items-center gap-1 text-xs text-white/80 transition hover:text-white hover:underline disabled:cursor-wait disabled:text-white/60"
                 aria-label="تحديث مواقيت الصلاة"
               >
-                <RefreshCcw size={14} />
-                تحديث
+                <RefreshCcw size={14} className={prayerWidget.refreshing ? "animate-spin" : ""} />
+                {prayerWidget.refreshing ? "جاري التحديث" : "تحديث"}
               </button>
             </div>
             <div className="mt-4 flex items-end justify-between">
               <div>
-                <p className="text-sm text-white/80">السبت 17 جمادى الأول 1447</p>
-                <h2 className="text-3xl font-bold">الفجر</h2>
+                <p className="text-sm text-white/80">
+                  {prayerWidget.loading ? "جاري تحميل التاريخ الهجري..." : prayerWidget.hijriDate || "التاريخ الهجري غير متاح"}
+                </p>
+                <h2 className="text-3xl font-bold">{prayerWidget.loading ? "..." : prayerWidget.nextPrayerName || "--"}</h2>
               </div>
               <div className="text-right">
-                <p className="text-sm text-white/70">8 نوفمبر 2025</p>
-                <p className="text-4xl font-extrabold tracking-wide">04:23</p>
+                <p className="text-sm text-white/70">
+                  {prayerWidget.loading ? "جاري تحميل التاريخ..." : prayerWidget.gregorianDate || "--"}
+                </p>
+                <p className="text-4xl font-extrabold tracking-wide">{prayerWidget.loading ? "--:--" : prayerWidget.nextPrayerTime || "--:--"}</p>
               </div>
             </div>
+            {prayerWidget.error ? <p className="mt-3 text-xs text-amber-50">{prayerWidget.error}</p> : null}
           </div>
         </div>
       </header>
@@ -301,7 +416,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {testimonials.map((item) => (
+            {visibleTestimonials.map((item) => (
               <Card key={item.id} className="rounded-2xl border border-sky-100 bg-white/90 p-4 shadow-md">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-amber-400">{stars(item.rating)}</div>
@@ -314,6 +429,11 @@ export default function HomePage() {
                 </div>
               </Card>
             ))}
+            {visibleTestimonials.length === 0 ? (
+              <Card className="rounded-2xl border border-sky-100 bg-white/90 p-4 text-center text-sm text-slate-500 shadow-md md:col-span-2">
+                لا توجد تقييمات مميزة حالياً.
+              </Card>
+            ) : null}
           </div>
         </section>
 
@@ -325,7 +445,7 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="space-y-3">
-            {communityDreams.map((dream) => (
+            {visibleCommunityDreams.map((dream) => (
               <Card key={dream.id} className="rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-sm">
                 <div className="flex items-center gap-2 text-xs text-slate-500">
                   <CalendarDays size={14} />
@@ -343,6 +463,11 @@ export default function HomePage() {
                 </div>
               </Card>
             ))}
+            {visibleCommunityDreams.length === 0 ? (
+              <Card className="rounded-3xl border border-sky-100 bg-white/90 p-4 text-center text-sm text-slate-500 shadow-sm">
+                لا توجد رؤى مميزة حالياً.
+              </Card>
+            ) : null}
           </div>
         </section>
       </main>

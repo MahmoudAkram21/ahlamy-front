@@ -1,18 +1,25 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Bell, Menu, Sun } from "lucide-react"
 
 import { NotificationsDropdown } from "./notifications-dropdown"
 import { ProfileDropdown } from "./profile-dropdown"
 import { SideMenu } from "./side-menu"
 import { getCurrentUser, type Profile } from "@/lib/api-client"
+import { useNotificationCount } from "@/lib/use-notification-count"
 
 export function DashboardHeader() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const { count: notificationCount, setCount: setNotificationCount, refresh: refreshNotificationCount } = useNotificationCount(Boolean(profile))
+
+  const handleNotificationsRead = useCallback(() => {
+    setNotificationCount(0)
+    refreshNotificationCount()
+  }, [refreshNotificationCount, setNotificationCount])
 
   const handleProfileToggle = () => {
     setProfileOpen((prev) => {
@@ -76,9 +83,18 @@ export function DashboardHeader() {
                 aria-label="الإشعارات"
               >
                 <Bell size={22} className="text-white" />
-                <span className="absolute -top-1 -right-1 h-2 w-2 animate-ping rounded-full bg-amber-300" />
+                {notificationCount > 0 ? (
+                  <span className="absolute -top-2 -right-2 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-amber-300 px-1 text-[10px] font-bold text-slate-900 shadow">
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                ) : null}
               </button>
-              {notificationsOpen && <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />}
+              {notificationsOpen && (
+                <NotificationsDropdown
+                  onClose={() => setNotificationsOpen(false)}
+                  onReadStateChange={handleNotificationsRead}
+                />
+              )}
               </div>
             </div>
             <div className="flex flex-col items-center px-16 text-center sm:px-24">

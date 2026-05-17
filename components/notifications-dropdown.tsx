@@ -2,74 +2,89 @@
 
 import { useEffect, useState } from "react"
 import { X, Bell, MessageSquare, Star } from "lucide-react"
-import { buildApiUrl } from "@/lib/api-client"
+import {
+  type AppNotification,
+  fetchNotifications,
+  getNotificationTitle,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/lib/notifications"
 
 interface NotificationsDropdownProps {
   onClose: () => void
+  onReadStateChange?: () => void
 }
 
-interface Notification {
-  id: number
-  title: string
-  message: string
-  time: string
-  type: 'dream' | 'message' | 'rating'
-  isRead?: boolean
-}
-
-export function NotificationsDropdown({ onClose }: NotificationsDropdownProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([])
+export function NotificationsDropdown({ onClose, onReadStateChange }: NotificationsDropdownProps) {
+  const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchNotifications = async () => {
+    let cancelled = false
+
+    const loadNotifications = async () => {
       try {
-        const response = await fetch(buildApiUrl('/notifications'), {
-          credentials: 'include',
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          // For now, use mock data - you can enhance this later
-          setNotifications([
-            {
-              id: 1,
-              title: "رؤية جديدة",
-              message: "تم استقبال رؤية جديدة تحتاج إلى تفسير",
-              time: "منذ 5 دقائق",
-              type: 'dream',
-              isRead: false,
-            },
-            {
-              id: 2,
-              title: "رسالة جديدة",
-              message: "لديك رسالة جديدة من أحد الرائين",
-              time: "منذ ساعة",
-              type: 'message',
-              isRead: false,
-            },
-          ])
+        const data = await fetchNotifications()
+        if (cancelled) return
+
+        setNotifications(data)
+
+        if (data.some((notification) => !notification.isRead)) {
+          await markAllNotificationsRead()
+          onReadStateChange?.()
         }
       } catch (error) {
         console.error('[Notifications] Error fetching:', error)
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     }
 
-    fetchNotifications()
-  }, [])
+    loadNotifications()
+    return () => {
+      cancelled = true
+    }
+  }, [onReadStateChange])
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'dream':
+      case 'dream_assigned':
+      case 'dream_submitted':
+      case 'dream_status_changed':
+      case 'request_assigned':
+      case 'request_status_changed':
         return <Bell size={18} className="text-sky-500" />
-      case 'message':
+      case 'dream_message':
         return <MessageSquare size={18} className="text-sky-400" />
       case 'rating':
         return <Star size={18} className="text-amber-400" />
       default:
         return <Bell size={18} className="text-gray-500" />
+    }
+  }
+
+  const formatTime = (value: string) =>
+    new Intl.DateTimeFormat("ar-EG", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value))
+
+  const handleNotificationClick = async (notification: AppNotification) => {
+    if (notification.isRead) return
+
+    setNotifications((prev) =>
+      prev.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
+    )
+
+    try {
+      await markNotificationRead(notification.id)
+      onReadStateChange?.()
+    } catch (error) {
+      console.error("[Notifications] Mark read error:", error)
     }
   }
 
@@ -108,18 +123,22 @@ export function NotificationsDropdown({ onClose }: NotificationsDropdownProps) {
               {notifications.map((notification) => (
                 <li
                   key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
                   className={`px-5 py-4 transition hover:bg-sky-50/80 ${
                     !notification.isRead ? "bg-sky-50/90" : "bg-white/90"
-                  }`}
+                  } cursor-pointer`}
                 >
                   <div className="flex gap-3">
                     <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-sky-500 shadow-inner">
                       {getIcon(notification.type)}
                     </div>
                     <div className="flex-1 text-right">
-                      <p className="text-sm font-semibold text-slate-900">{notification.title}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        {!notification.isRead ? <span className="mt-1 h-2 w-2 rounded-full bg-sky-500" /> : <span />}
+                        <p className="text-sm font-semibold text-slate-900">{getNotificationTitle(notification.type)}</p>
+                      </div>
                       <p className="mt-1 text-xs leading-6 text-slate-500">{notification.message}</p>
-                      <p className="mt-2 text-[11px] font-medium text-slate-400">{notification.time}</p>
+                      <p className="mt-2 text-[11px] font-medium text-slate-400">{formatTime(notification.createdAt)}</p>
                     </div>
                   </div>
                 </li>

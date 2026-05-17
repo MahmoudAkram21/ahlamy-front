@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { Star } from "lucide-react"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { buildApiUrl } from "@/lib/api-client"
@@ -25,6 +26,11 @@ const stores = [
 export default function RatePage() {
   const [page, setPage] = useState<PageContent | null>(null)
   const [loading, setLoading] = useState(true)
+  const [rating, setRating] = useState(5)
+  const [content, setContent] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [submitMessage, setSubmitMessage] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadPage = async () => {
@@ -45,6 +51,74 @@ export default function RatePage() {
     loadPage()
   }, [])
 
+  const submitReview = async () => {
+    setSubmitting(true)
+    setSubmitMessage(null)
+    setSubmitError(null)
+
+    try {
+      const response = await fetch(buildApiUrl("/reviews"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ rating, content }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || "تعذر إرسال التقييم")
+      }
+
+      setContent("")
+      setRating(5)
+      setSubmitMessage("تم إرسال تقييمك للإدارة، وسيظهر بعد المراجعة.")
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "تعذر إرسال التقييم")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const reviewForm = (
+    <div className="mt-8 rounded-3xl border border-sky-100 bg-sky-50/70 p-5 text-right">
+      <h2 className="text-xl font-bold text-slate-900">شارك تقييمك</h2>
+      <div className="mt-4 flex justify-end gap-1">
+        {Array.from({ length: 5 }).map((_, index) => {
+          const value = index + 1
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setRating(value)}
+              className={value <= rating ? "text-amber-500" : "text-slate-300"}
+              aria-label={`${value} نجوم`}
+            >
+              <Star size={26} fill="currentColor" />
+            </button>
+          )
+        })}
+      </div>
+      <textarea
+        value={content}
+        onChange={(event) => setContent(event.target.value)}
+        placeholder="اكتب تجربتك مع أحلامي..."
+        className="mt-4 min-h-32 w-full rounded-2xl border border-sky-100 bg-white px-4 py-3 text-right text-sm text-slate-800 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+      />
+      {submitError ? <p className="mt-3 text-sm font-semibold text-rose-600">{submitError}</p> : null}
+      {submitMessage ? <p className="mt-3 text-sm font-semibold text-emerald-700">{submitMessage}</p> : null}
+      <button
+        type="button"
+        onClick={submitReview}
+        disabled={submitting || content.trim().length < 10}
+        className="mt-4 w-full rounded-full bg-gradient-to-r from-sky-500 to-amber-400 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {submitting ? "جاري الإرسال..." : "إرسال التقييم"}
+      </button>
+    </div>
+  )
+
   if (loading) {
     return <PageLoader message="جاري التحميل..." />
   }
@@ -63,6 +137,7 @@ export default function RatePage() {
               style={{ direction: "rtl" }}
               dangerouslySetInnerHTML={{ __html: page.content }}
             />
+            {reviewForm}
             <div className="mt-8 grid gap-3 md:grid-cols-3">
               {stores.map((store) => (
                 <Link
@@ -137,6 +212,7 @@ export default function RatePage() {
               <li>أرسل التقييم وشارك لقطة شاشة مع أصدقائك لدعمنا أكثر.</li>
             </ol>
           </div>
+          {reviewForm}
           <div className="grid gap-3 md:grid-cols-3">
             {stores.map((store) => (
               <Link

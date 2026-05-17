@@ -6,6 +6,7 @@ import { Fragment, useMemo } from "react"
 import {
   BadgeCheck,
   BookOpen,
+  CircleHelp,
   Headset,
   Home,
   Info,
@@ -81,6 +82,11 @@ export function SideMenu({ open, onClose, profile }: SideMenuProps) {
         label: "الشروط والأحكام",
         href: "/terms",
         icon: <ScrollText size={20} />,
+      },
+      {
+        label: "الأسئلة الشائعة",
+        href: "/faqs",
+        icon: <CircleHelp size={20} />,
       },
       // {
       //   label: "البريد الإلكتروني",

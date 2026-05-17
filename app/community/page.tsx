@@ -1,17 +1,18 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { CalendarDays, ChevronLeft, BookOpen } from "lucide-react"
 import Link from "next/link"
 import { BottomNavigation } from "@/components/bottom-navigation"
 import { Card } from "@/components/ui/card"
+import { buildApiUrl } from "@/lib/api-client"
 
 interface CommunityDreamItem {
-  id: number
+  id: number | string
   date: string
   title: string
   content: string
-  interpretation: string
+  interpretation?: string | null
 }
 
 const communityDreamsWithInterpretations: CommunityDreamItem[] = [
@@ -63,6 +64,32 @@ const communityDreamsWithInterpretations: CommunityDreamItem[] = [
 ]
 
 export default function CommunityPage() {
+  const [dreams, setDreams] = useState<CommunityDreamItem[]>([])
+
+  useEffect(() => {
+    const loadFeaturedDreams = async () => {
+      try {
+        const response = await fetch(buildApiUrl("/dreams/featured"), {
+          cache: "no-store",
+        })
+        if (!response.ok) return
+        const data = await response.json()
+        const nextDreams = (data.dreams || []).map((dream: { id: string; title?: string | null; preview: string; interpretation?: string | null; createdAt?: string; featuredAt?: string | null }) => ({
+          id: dream.id,
+          title: dream.title || "رؤيا مميزة",
+          content: dream.preview,
+          interpretation: dream.interpretation,
+          date: new Date(dream.featuredAt || dream.createdAt || Date.now()).toLocaleDateString("ar-EG"),
+        }))
+        setDreams(nextDreams)
+      } catch (error) {
+        console.error("[Community] Error loading featured dreams:", error)
+      }
+    }
+
+    loadFeaturedDreams()
+  }, [])
+
   useEffect(() => {
     const hash = typeof window !== "undefined" ? window.location.hash.slice(1) : ""
     if (hash) {
@@ -104,7 +131,7 @@ export default function CommunityPage() {
           </h2>
 
           <div className="space-y-6">
-            {communityDreamsWithInterpretations.map((dream) => (
+            {dreams.map((dream) => (
               <Card
                 key={dream.id}
                 id={`dream-${dream.id}`}
@@ -135,6 +162,11 @@ export default function CommunityPage() {
                 </div>
               </Card>
             ))}
+            {dreams.length === 0 ? (
+              <Card className="rounded-3xl border border-sky-100 bg-white/95 p-6 text-center text-sm text-slate-500 shadow-md">
+                لا توجد رؤى مميزة حالياً.
+              </Card>
+            ) : null}
           </div>
         </section>
 
